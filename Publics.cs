@@ -3,6 +3,7 @@
     public static Logger Logger { get; set; }
     public static Settings Settings { get; set; }
 
+    public static List<List<string[]>> ProcessedThemes { get; set; } = new List<List<string[]>>();
 
     public static string ExecutableCreationTime { get; set; } = String.Empty;
     public static string ExecutableLastWriteTime { get; set; } = String.Empty;
@@ -11,8 +12,6 @@
     public static string AppStartDate { get; set; } = String.Empty;
 
     public static string SettingsHashSHA256 { get; set; } = String.Empty;
-
-
 
     public static PathNames PathNames { get; set; } = new PathNames();
     public static PathDirs PathDirs { get; set; } = new PathDirs();
@@ -25,6 +24,8 @@ public class PathCoreClass
 
     public string MainSettings { get; set; }
     public string Log { get; set; }
+
+    public string ThemeList { get; set; }
 }
 
 public class PathNames : PathCoreClass
@@ -35,6 +36,8 @@ public class PathNames : PathCoreClass
 
         MainSettings = "Settings.txt";                                              //f12
         Log = "Log.txt";                                                            //f12
+
+        ThemeList = "ThemeList.txt";                                                //f12
     }
 }
 public class PathDirs : PathCoreClass
@@ -46,6 +49,8 @@ public class PathDirs : PathCoreClass
 
         this.Log = this.Core + Path.DirectorySeparatorChar + inputPathNames.Log;
         this.MainSettings = this.Core + Path.DirectorySeparatorChar + inputPathNames.MainSettings;
+
+        this.ThemeList = this.Core + Path.DirectorySeparatorChar + inputPathNames.ThemeList;
     }
 
     private static string GetCorePath(string inputCurrentPath, string inputCorePathName)

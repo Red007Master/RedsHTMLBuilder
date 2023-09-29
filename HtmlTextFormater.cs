@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 public class HtmlTextFormater
 {
@@ -17,42 +18,100 @@ public class HtmlTextFormater
         {
             List<List<string>> otherOpeningTags = new List<List<string>>();
             otherOpeningTags.Add(HtmlTextFormaterConfig.HtmlOpeningTags);
-            otherOpeningTags.Add(HtmlTextFormaterConfig.HighlightOpeningTags);
+            otherOpeningTags.Add(HtmlTextFormaterConfig.JsOpeningTags);
 
             List<List<string>> otherClosingTags = new List<List<string>>();
             otherClosingTags.Add(HtmlTextFormaterConfig.HtmlClosingTags);
-            otherClosingTags.Add(HtmlTextFormaterConfig.HighlightClosingTags);
-
-            result = ParamFormat(result, HtmlTextFormaterConfig.JsOpeningTags, HtmlTextFormaterConfig.JsClosingTags, HtmlTextFormaterConfig.JsTriggers, HtmlTextFormaterConfig.CSSClassJS, otherOpeningTags, otherClosingTags);
-        }
-
-
-        {
-            List<List<string>> otherOpeningTags = new List<List<string>>();
-            otherOpeningTags.Add(HtmlTextFormaterConfig.JsOpeningTags);
-            otherOpeningTags.Add(HtmlTextFormaterConfig.HighlightOpeningTags);
-
-            List<List<string>> otherClosingTags = new List<List<string>>();
             otherClosingTags.Add(HtmlTextFormaterConfig.JsClosingTags);
-            otherClosingTags.Add(HtmlTextFormaterConfig.HighlightClosingTags);
 
-            result = ParamFormat(result, HtmlTextFormaterConfig.HtmlOpeningTags, HtmlTextFormaterConfig.HtmlClosingTags, HtmlTextFormaterConfig.HtmlTriggers, HtmlTextFormaterConfig.CSSClassHtml, otherOpeningTags, otherClosingTags);
+            //result = ParamFormat(result, HtmlTextFormaterConfig.HighlightOpeningTags, HtmlTextFormaterConfig.HighlightClosingTags, HtmlTextFormaterConfig.HighlightTriggers, HtmlTextFormaterConfig.CSSClassHighlight, otherOpeningTags, otherClosingTags);
+            result = NewParamFormat(result, HtmlTextFormaterConfig.HighlightOpeningTags, HtmlTextFormaterConfig.HighlightClosingTags, HtmlTextFormaterConfig.HighlightTriggers, HtmlTextFormaterConfig.CSSClassHighlight);
         }
 
 
         {
             List<List<string>> otherOpeningTags = new List<List<string>>();
             otherOpeningTags.Add(HtmlTextFormaterConfig.HtmlOpeningTags);
-            otherOpeningTags.Add(HtmlTextFormaterConfig.JsOpeningTags);
+            otherOpeningTags.Add(HtmlTextFormaterConfig.HighlightOpeningTags);
 
             List<List<string>> otherClosingTags = new List<List<string>>();
             otherClosingTags.Add(HtmlTextFormaterConfig.HtmlClosingTags);
-            otherClosingTags.Add(HtmlTextFormaterConfig.JsClosingTags);
+            otherClosingTags.Add(HtmlTextFormaterConfig.HighlightClosingTags);
 
-            result = ParamFormat(result, HtmlTextFormaterConfig.HighlightOpeningTags, HtmlTextFormaterConfig.HighlightClosingTags, HtmlTextFormaterConfig.HighlightTriggers, HtmlTextFormaterConfig.CSSClassHighlight, otherOpeningTags, otherClosingTags);
+            //result = ParamFormat(result, HtmlTextFormaterConfig.JsOpeningTags, HtmlTextFormaterConfig.JsClosingTags, HtmlTextFormaterConfig.JsTriggers, HtmlTextFormaterConfig.CSSClassJS, otherOpeningTags, otherClosingTags);
+            result = NewParamFormat(result, HtmlTextFormaterConfig.JsOpeningTags, HtmlTextFormaterConfig.JsClosingTags, HtmlTextFormaterConfig.JsTriggers, HtmlTextFormaterConfig.CSSClassJS);
+        }
+
+
+        {
+            List<List<string>> otherOpeningTags = new List<List<string>>();
+            otherOpeningTags.Add(HtmlTextFormaterConfig.JsOpeningTags);
+            otherOpeningTags.Add(HtmlTextFormaterConfig.HighlightOpeningTags);
+
+            List<List<string>> otherClosingTags = new List<List<string>>();
+            otherClosingTags.Add(HtmlTextFormaterConfig.JsClosingTags);
+            otherClosingTags.Add(HtmlTextFormaterConfig.HighlightClosingTags);
+
+            //result = ParamFormat(result, HtmlTextFormaterConfig.HtmlOpeningTags, HtmlTextFormaterConfig.HtmlClosingTags, HtmlTextFormaterConfig.HtmlTriggers, HtmlTextFormaterConfig.CSSClassHtml, otherOpeningTags, otherClosingTags);
+            result = NewParamFormat(result, HtmlTextFormaterConfig.HtmlOpeningTags, HtmlTextFormaterConfig.HtmlClosingTags, HtmlTextFormaterConfig.HtmlTriggers, HtmlTextFormaterConfig.CSSClassHtml);
         }
 
         return result;
+    }
+
+    private string NewParamFormat(string input, List<string> openingTags, List<string> closingTags, List<string> triggers, string cssClass)
+    {
+        string result = input;
+
+        //if (triggers.Contains("highlight".ToLower()))
+        //{
+        //    Console.WriteLine();
+        //}
+
+        string openingTag = "dq45w34i3o6dq3i4ow35d3h3o3qiw335hdi6oqhwidhqwodqwjxioqpw8xuqwxhq".ToLower();
+        string closingTag = "dqd123e23rio4h5juh756j89kjkhj23uih2uigh3u42uih2uih4ui2h36jn7ui4n".ToLower();
+
+        for (int i = 0; i < openingTags.Count; i++)
+            result = result.Replace(openingTags[i], openingTag);
+
+        for (int i = 0; i < closingTags.Count; i++)
+            result = result.Replace(closingTags[i], closingTag);
+
+        result = FormatStringsOutsideTags(result, triggers.ToArray(), openingTag, closingTag);
+
+        result = result.Replace(openingTag, CreateOpenSpan(cssClass));
+        result = result.Replace(closingTag, "</span>");
+
+        return result;
+    }
+
+    static string FormatStringsOutsideTags(string inputText, string[] stringsToFormat, string openingString, string closingString)
+    {
+        //string pattern = $@"(?i)(?<!\.)\b(?:{string.Join("|", Array.ConvertAll(stringsToFormat, Regex.Escape))})(?=\W|$)";
+
+        string escapedStringsPattern = string.Join("|", Array.ConvertAll(stringsToFormat, Regex.Escape));
+        string pattern = $@"(?i)(?<!\w)(?<!\.)({escapedStringsPattern})(?!\w)";
+
+        string formattedText = Regex.Replace(inputText, pattern, match =>
+        {
+            // Check if the match is not within a tag
+            if (!IsInsideTag(inputText, match.Index))
+            {
+                return $"{openingString}{match.Value}{closingString}";
+            }
+            return match.Value;
+        });
+
+        return formattedText;
+    }
+
+
+    static bool IsInsideTag(string text, int index)
+    {
+        int openTagIndex = text.LastIndexOf('<', index);
+        int closeTagIndex = text.LastIndexOf('>', index);
+
+        return openTagIndex > closeTagIndex;
     }
 
     private string ParamFormat(string input, List<string> openingTags, List<string> closingTags, List<string> triggers, string cssClass, List<List<string>> otherOpeningTags, List<List<string>> otherClosingTags)
@@ -164,6 +223,8 @@ public class HtmlTextFormater
         return result;
     }
 
+
+
     private bool IsStringContains(string inputSearchIn, List<List<string>> inputListOfListsOfStrings)
     {
         bool result = false;
@@ -192,6 +253,11 @@ public class HtmlTextFormater
     private string CreateOpenSpan(string className)
     {
         return $"<span class='{className}'>";
+    }
+
+    public void AppendConfig(HtmlTextFormaterConfig htmlTextFormaterConfig)
+    {
+        HtmlTextFormaterConfig.MargeWith(htmlTextFormaterConfig);
     }
 
     public HtmlTextFormater()
@@ -260,5 +326,30 @@ public class HtmlTextFormaterConfig
         CSSClassJS = "attention-code";
         CSSClassHtml = "attention-code-second";
         CSSClassHighlight = "attention-highlight";
+    }
+
+    public void MargeWith(HtmlTextFormaterConfig htmlTextFormaterConfig)
+    {
+        JsOpeningTags.AddRange(htmlTextFormaterConfig.JsOpeningTags);
+        HtmlOpeningTags.AddRange(htmlTextFormaterConfig.HtmlOpeningTags);
+        HighlightOpeningTags.AddRange(htmlTextFormaterConfig.HighlightOpeningTags);
+
+        JsClosingTags.AddRange(htmlTextFormaterConfig.JsClosingTags);
+        HtmlClosingTags.AddRange(htmlTextFormaterConfig.HtmlClosingTags);
+        HighlightClosingTags.AddRange(htmlTextFormaterConfig.HighlightClosingTags);
+
+        JsTriggers.AddRange(htmlTextFormaterConfig.JsTriggers);
+        HtmlTriggers.AddRange(htmlTextFormaterConfig.HtmlTriggers);
+        HighlightTriggers.AddRange(htmlTextFormaterConfig.HighlightTriggers);
+
+        JsOpeningTags = JsOpeningTags.Distinct().ToList();
+        HtmlOpeningTags = HtmlOpeningTags.Distinct().ToList();
+        HighlightOpeningTags = HighlightOpeningTags.Distinct().ToList();
+        JsClosingTags = JsClosingTags.Distinct().ToList();
+        HtmlClosingTags = HtmlClosingTags.Distinct().ToList();
+        HighlightClosingTags = HighlightClosingTags.Distinct().ToList();
+        JsTriggers = JsTriggers.Distinct().ToList();
+        HtmlTriggers = HtmlTriggers.Distinct().ToList();
+        HighlightTriggers = HighlightTriggers.Distinct().ToList();
     }
 }

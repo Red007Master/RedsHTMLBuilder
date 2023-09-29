@@ -101,6 +101,8 @@ public class Settings
         AddSetting<string>("currentTaskConfig.json", "CurrentTaskConfig", "Name of currentTaskConfig file.");
         AddSetting<string>("currentResultConfig.json", "CurrentResultConfig", "Name of currentResultConfig file.");
 
+        AddSetting<string>("/media/M2King1tb/Development/Projects/Webskill/Themes/WebskillThemes/courses/!dev.GlobalData/currentHtmlTextFormaterConfig.json", "GlobalHtmlTextFormaterConfig", "GlobalHtmlTextFormaterConfig path.");
+
         AddSetting<string>("ScriptsToUse.txt", "ScriptsToUse", "Name of ScriptsToUse file.");
         AddSetting<string>("StylesToUse.txt", "StylesToUse", "Name of StylesToUse file.");
 
@@ -189,6 +191,8 @@ namespace RedsSettings
         public string CurrentThemeConfig { get; internal set; }
         public string CurrentTaskConfig { get; internal set; }
         public string CurrentResultConfig { get; internal set; }
+
+        public string GlobalHtmlTextFormaterConfig { get; internal set; }
 
         public string ScriptsToUse { get; internal set; }
         public string StylesToUse { get; internal set; }

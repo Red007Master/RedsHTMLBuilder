@@ -34,8 +34,32 @@ public class HtmlFile
 
     public override string ToString()
     {
+        CleanNewlines(Document.DocumentNode);
+
         return Document.DocumentNode.OuterHtml;
     }
+
+    public void CleanNewlines(HtmlNode node)
+    {
+        if (node.NodeType == HtmlNodeType.Text && node.ParentNode.Name == "code")
+        {
+            // Do not remove newlines within <code> nodes
+            return;
+        }
+
+        if (node.NodeType == HtmlNodeType.Text)
+        {
+            // Remove newlines within text nodes
+            node.InnerHtml = node.InnerHtml.Replace("\n", "").Replace("\r", "");
+        }
+
+        foreach (var childNode in node.ChildNodes)
+        {
+            CleanNewlines(childNode);
+        }
+    }
+
+
     public HtmlFile()
     {
         Document = new HtmlDocument();
@@ -157,6 +181,7 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
 
         result.AppendChild(GetCompileNameValueNode("InfoMaterialThemeConfigStringHash", ThemesHashes.InfoMaterialThemeConfigStringHash));
         result.AppendChild(GetCompileNameValueNode("HtmlTextFormaterStringHash", ThemesHashes.HtmlTextFormaterStringHash));
+        result.AppendChild(GetCompileNameValueNode("GlobalHtmlTextFormaterStringHash", ThemesHashes.GlobalHtmlTextFormaterStringHash));
         result.AppendChild(GetCompileNameValueNode("HeaderHash", ThemesHashes.HeaderHash));
         result.AppendChild(GetCompileNameValueNode("FooterHash", ThemesHashes.FooterHash));
         result.AppendChild(GetCompileNameValueNode("AdditionalMainDivContentHash", ThemesHashes.AdditionalMainDivContentHash));
@@ -175,9 +200,10 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
 
     public InfoMaterialThemeHtmlFile() { }
 
-    public InfoMaterialThemeHtmlFile(List<string> styles, List<string> scripts, List<string> additionalHeadContent, string infoMaterialThemeConfigString, string htmlTextFormaterString, string header, string footer, string additionalMainDivContent, int themeNumber) : base(styles, scripts, additionalHeadContent)
+    public InfoMaterialThemeHtmlFile(List<string> styles, List<string> scripts, List<string> additionalHeadContent, string infoMaterialThemeConfigString, string htmlTextFormaterString, string globalHtmlTextFormaterString, string header, string footer, string additionalMainDivContent, int themeNumber) : base(styles, scripts, additionalHeadContent)
     {
         HtmlTextFormater = new HtmlTextFormater(JsonConvert.DeserializeObject<HtmlTextFormaterConfig>(htmlTextFormaterString));
+        HtmlTextFormater.AppendConfig(JsonConvert.DeserializeObject<HtmlTextFormaterConfig>(globalHtmlTextFormaterString));
 
         InfoMaterialThemeConfig infoMaterialThemeConfig = JsonConvert.DeserializeObject<InfoMaterialThemeConfig>(infoMaterialThemeConfigString);
 
@@ -199,7 +225,7 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
         FooterNode = HtmlNode.CreateNode(footer);
 
         string other = Convert.ToString(themeNumber);
-        ThemesHashes = new ThemesHashes(styles, scripts, additionalHeadContent, infoMaterialThemeConfigString, htmlTextFormaterString, header, footer, additionalMainDivContent, P.ExecutableHashSHA256, other);
+        ThemesHashes = new ThemesHashes(styles, scripts, additionalHeadContent, infoMaterialThemeConfigString, htmlTextFormaterString, globalHtmlTextFormaterString, header, footer, additionalMainDivContent, P.ExecutableHashSHA256, other);
 
         InfoMaterialThemeMainContentContainerNodes = GenerateInfoMaterialThemeMainContentContainerNodes(infoMaterialThemeConfig.InfoMaterialThemeMainContentContainerConfigs);
     }
@@ -253,7 +279,14 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
             }
             else if (additionalContentElemConfigs[i].Src.Length > 0)
             {
-                result.Add(new AdditionalContentImgNode(additionalContentElemConfigs[i].Src));
+                if (additionalContentElemConfigs[i].Src.EndsWith(".mp4"))
+                {
+                    result.Add(new AdditionalContentVideoNode(additionalContentElemConfigs[i].Src));
+                }
+                else
+                {
+                    result.Add(new AdditionalContentImgNode(additionalContentElemConfigs[i].Src));
+                }
             }
             else if (additionalContentElemConfigs[i].OtherHtml.Length > 0)
             {
@@ -411,6 +444,22 @@ public class AdditionalContentImgNode : AdditionalContentElemNodeCore
     {
         HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode("<div class='theme-additional-html-content-container'></div>");
         otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<img src='{Src}' class='theme-additional-img' alt=''>"));
+        Core = otherHtmlContainerNode;
+    }
+}
+public class AdditionalContentVideoNode : AdditionalContentElemNodeCore
+{
+    public string Src { get; set; }
+
+    public AdditionalContentVideoNode(string src)
+    {
+        Src = src;
+    }
+
+    public override void Compile()
+    {
+        HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode("<div class='theme-additional-html-content-container'></div>");
+        otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' controls><source src='{Src}'></video>"));
         Core = otherHtmlContainerNode;
     }
 }
@@ -588,6 +637,7 @@ public class ThemesHashes
 
     public string InfoMaterialThemeConfigStringHash = String.Empty;
     public string HtmlTextFormaterStringHash = String.Empty;
+    public string GlobalHtmlTextFormaterStringHash = String.Empty;
     public string HeaderHash = String.Empty;
     public string FooterHash = String.Empty;
     public string AdditionalMainDivContentHash = String.Empty;
@@ -596,7 +646,7 @@ public class ThemesHashes
 
     public string ExecutableHashSHA256 = String.Empty;
 
-    public ThemesHashes(List<string> styles, List<string> scripts, List<string> additionalHeadContent, string infoMaterialThemeConfigString, string htmlTextFormaterString, string header, string footer, string additionalMainDivContent, string executableHashSHA256, string other)
+    public ThemesHashes(List<string> styles, List<string> scripts, List<string> additionalHeadContent, string infoMaterialThemeConfigString, string htmlTextFormaterString, string globalHtmlTextFormaterString, string header, string footer, string additionalMainDivContent, string executableHashSHA256, string other)
     {
         StylesHash = Hash.GetStringSHA256(String.Join(String.Empty, styles.ToArray()));
         ScriptsHash = Hash.GetStringSHA256(String.Join(String.Empty, scripts.ToArray()));
@@ -604,6 +654,7 @@ public class ThemesHashes
 
         InfoMaterialThemeConfigStringHash = Hash.GetStringSHA256(infoMaterialThemeConfigString);
         HtmlTextFormaterStringHash = Hash.GetStringSHA256(htmlTextFormaterString);
+        GlobalHtmlTextFormaterStringHash = Hash.GetStringSHA256(globalHtmlTextFormaterString);
         HeaderHash = Hash.GetStringSHA256(header);
         FooterHash = Hash.GetStringSHA256(footer);
         AdditionalMainDivContentHash = Hash.GetStringSHA256(additionalMainDivContent);
@@ -632,6 +683,7 @@ public class ThemesHashes
                obj1.AdditionalHeadContentHash == obj2.AdditionalHeadContentHash &&
                obj1.InfoMaterialThemeConfigStringHash == obj2.InfoMaterialThemeConfigStringHash &&
                obj1.HtmlTextFormaterStringHash == obj2.HtmlTextFormaterStringHash &&
+               obj1.GlobalHtmlTextFormaterStringHash == obj2.GlobalHtmlTextFormaterStringHash &&
                obj1.HeaderHash == obj2.HeaderHash &&
                obj1.FooterHash == obj2.FooterHash &&
                obj1.ExecutableHashSHA256 == obj2.ExecutableHashSHA256 &&

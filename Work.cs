@@ -37,12 +37,141 @@ internal class Work
                 CheckedDirAndLoadInfoMaterialThemesIfPresent(configDirs[i]);
             }
         }
+
+        WriteThemeDataOut();
     }
 
-    public static InfoMaterialThemeHtmlFile LoadInfoMaterialThemeHtmlFile(string configPath, string textFormaterPath, string stylesPath, string scriptsPath, string additionalHeadContentPath, string headerPath, string footerPath, string additionalMainDivContentPath, int themeNumber)
+    public static void WriteThemeDataOut()
+    {
+        List<List<string>> processedThemesFinal = new List<List<string>>();
+
+        for (int i = 0; i < P.ProcessedThemes.Count; i++)
+        {
+            if (!P.ProcessedThemes[i][0][0].Contains("dev"))
+            {
+                List<IndexedStringArray> tmpIndexStringList = new List<IndexedStringArray>();
+                tmpIndexStringList = new List<IndexedStringArray>();
+                tmpIndexStringList.Add(new IndexedStringArray(P.ProcessedThemes[i][0], 0));
+
+                for (int j = 1; j < P.ProcessedThemes[i].Count; j++)
+                {
+                    tmpIndexStringList.Add(new IndexedStringArray(P.ProcessedThemes[i][j]));
+                }
+
+                // Create a custom comparer instance
+                var comparer = new IndexedStringArrayComparer();
+
+                // Sort the list using the custom comparer
+                tmpIndexStringList.Sort(comparer);
+
+
+                List<string> tmpList = new List<string>();
+
+
+                int maxTitleLenght = 0;
+                int maxSummaryLenght = 0;
+
+                for (int j = 0; j < tmpIndexStringList.Count; j++)
+                {
+                    if (tmpIndexStringList[j].Value[0].Length > maxTitleLenght)
+                    {
+                        maxTitleLenght = tmpIndexStringList[j].Value[0].Length;
+                    }
+                    if (tmpIndexStringList[j].Value[1].Length > maxSummaryLenght)
+                    {
+                        maxSummaryLenght = tmpIndexStringList[j].Value[1].Length;
+                    }
+                }
+
+                for (int j = 0; j < tmpIndexStringList.Count; j++)
+                {
+                    string numberAsString = Convert.ToString(tmpIndexStringList[j].Index);
+
+                    if (numberAsString.Length < 2)
+                    {
+                        numberAsString = "0" + numberAsString;
+                    }
+
+                    int addLenghtTitle = maxTitleLenght - tmpIndexStringList[j].Value[0].Length;
+                    int addLenghtSummary = maxSummaryLenght - tmpIndexStringList[j].Value[1].Length;
+
+                    tmpList.Add($"[{numberAsString}]---[{tmpIndexStringList[j].Value[0]}{new string('-', addLenghtTitle)}|-|{tmpIndexStringList[j].Value[1]}{new string('-', addLenghtSummary)}]");
+                }
+
+                processedThemesFinal.Add(tmpList);
+            }
+        }
+
+        try
+        {
+            string writeFilePath = P.PathDirs.ThemeList;
+            File.Delete(writeFilePath);
+            // Create or open the file for writing
+            using (StreamWriter writer = new StreamWriter(writeFilePath, true)) // Set 'true' to append to an existing file
+            {
+                for (int i = 0; i < processedThemesFinal.Count; i++)
+                {
+                    if (i != 0) writer.WriteLine("\n");
+                    writer.WriteLine(processedThemesFinal[i][0]);
+
+                    for (int j = 1; j < processedThemesFinal[i].Count; j++)
+                    {
+                        writer.WriteLine(processedThemesFinal[i][j]);
+                    }
+                }
+
+            }
+        }
+        catch (IOException e)
+        {
+            Console.WriteLine($"An error occurred: {e.Message}");
+        }
+
+    }
+
+    public class IndexedStringArrayComparer : IComparer<IndexedStringArray>
+    {
+        public int Compare(IndexedStringArray x, IndexedStringArray y)
+        {
+            return x.Index.CompareTo(y.Index);
+        }
+    }
+
+
+    public class IndexedStringArray
+    {
+        public IndexedStringArray(string[] value)
+        {
+            Value = value;
+            Index = ExtractNumbers(value[0]);
+        }
+
+        public IndexedStringArray(string[] value, int index)
+        {
+            Value = value;
+            Index = index;
+        }
+
+        public int Index { get; set; }
+        public string[] Value { get; set; }
+    }
+
+    static int ExtractNumbers(string input)
+    {
+        Match match = Regex.Match(input, @"\d+");
+        if (match.Success)
+        {
+            return int.Parse(match.Value);
+        }
+        return int.MaxValue; // If there's no number, place it at the end
+    }
+
+    public static InfoMaterialThemeHtmlFile LoadInfoMaterialThemeHtmlFile(string configPath, string textFormaterPath, string globalTextFormaterPath, string stylesPath, string scriptsPath, string additionalHeadContentPath, string headerPath, string footerPath, string additionalMainDivContentPath, int themeNumber)
     {
         string infoMaterialThemeConfig = File.ReadAllText(configPath);
+
         string TextFormater = File.ReadAllText(textFormaterPath);
+        string GlobalTextFormater = File.ReadAllText(globalTextFormaterPath);
 
         List<string> styles = File.ReadAllLines(stylesPath).ToList();
         List<string> scripts = File.ReadAllLines(scriptsPath).ToList();
@@ -53,7 +182,7 @@ internal class Work
 
         string additionalMainDivContent = File.ReadAllText(additionalMainDivContentPath);
 
-        return new InfoMaterialThemeHtmlFile(styles, scripts, additionalHeadContent, infoMaterialThemeConfig, TextFormater, header, footer, additionalMainDivContent, themeNumber);
+        return new InfoMaterialThemeHtmlFile(styles, scripts, additionalHeadContent, infoMaterialThemeConfig, TextFormater, GlobalTextFormater, header, footer, additionalMainDivContent, themeNumber);
     }
 
     public static bool CheckedDirAndLoadInfoMaterialThemesIfPresent(string coreDir)
@@ -71,15 +200,51 @@ internal class Work
             {
                 P.Logger.Log($"Dir exist, proceeding:", LogLevel.Information, 3);
 
+
+
+                string parentThemeNameTmp = MoveDirectoriesDown(coreDir, 3);
+                string parentThemeName = GetLastFolderName(parentThemeNameTmp);
+
+                bool parentNameIsAlredyInList = false;
+                for (int i = 0; i < P.ProcessedThemes.Count; i++)
+                {
+                    if (P.ProcessedThemes[i][0][0] == parentThemeName)
+                    {
+                        parentNameIsAlredyInList = true;
+                        break;
+                    }
+                }
+
+                if (!parentNameIsAlredyInList)
+                {
+                    List<string[]> tmpList = new List<string[]>();
+                    tmpList.Add(new string[] { parentThemeName, "general-theme-name" });
+                    P.ProcessedThemes.Add(tmpList);
+                }
+
+
                 InfoMaterialThemeProjectDirs infoMaterialThemeProjectDirs = new InfoMaterialThemeProjectDirs(coreDir);
 
                 string[] pathArray = coreDir.Split(Path.DirectorySeparatorChar);
                 string themeFolderName = pathArray[pathArray.Length - 3];
                 int themeNumber = RemoveNonNumericCharactersAndReturnNumberOrZero(themeFolderName);
 
-                infoMaterialThemeHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialThemeConfig, infoMaterialThemeProjectDirs.TextFormater, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
-                infoMaterialTaskHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialTaskConfig, infoMaterialThemeProjectDirs.TextFormater, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
-                infoMaterialResultHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialResultConfig, infoMaterialThemeProjectDirs.TextFormater, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
+                infoMaterialThemeHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialThemeConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
+                infoMaterialTaskHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialTaskConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
+                infoMaterialResultHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialResultConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
+
+                for (int i = 0; i < P.ProcessedThemes.Count; i++)
+                {
+                    if (P.ProcessedThemes[i][0][0] == parentThemeName)
+                    {
+                        char[] charsToTrim = { ' ', '\t', '\n', '\r', '\0', '\x3000' }; // Add any other characters you want to remove
+
+                        string toAddTitle = infoMaterialThemeHtmlFile.Title.TrimEnd(charsToTrim);
+                        string toAddSummary = infoMaterialThemeHtmlFile.Summary.TrimEnd(charsToTrim);
+
+                        P.ProcessedThemes[i].Add(new string[] { infoMaterialThemeHtmlFile.Title, infoMaterialThemeHtmlFile.Summary });
+                    }
+                }
 
                 loaded = true;
             }
@@ -111,7 +276,8 @@ internal class Work
         {
             return Convert.ToInt32(result);
         }
-        else{
+        else
+        {
             return -1;
         }
     }
@@ -166,6 +332,20 @@ internal class Work
         }
 
         return compiledAndSaved;
+    }
+    static string GetLastFolderName(string path)
+    {
+        // Use Path class to split the path into individual directory parts
+        string[] parts = path.Split(Path.DirectorySeparatorChar);
+
+        // Check if the path is empty or consists of only separators
+        if (parts.Length == 0 || string.IsNullOrEmpty(parts[parts.Length - 1]))
+        {
+            return "Invalid Path";
+        }
+
+        // Return the last part of the path, which is the last folder name
+        return parts[parts.Length - 1];
     }
 
     public static string MoveDirectoriesDown(string path, int n)
