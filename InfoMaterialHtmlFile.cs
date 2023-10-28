@@ -539,7 +539,7 @@ public class InfoMaterialThemeConfig
         HeaderContent = "Тема {ThemeNumber}<br>XXXXX";
 
         //FooterContent = "footerDummy";
-        FooterContent = "Copyright © 2022 WebSkill - Всі права захищено.";
+        FooterContent = "Copyright © 2022  - Всі права захищено.";
 
         InfoMaterialThemeMainContentContainerConfigs = new List<InfoMaterialThemeMainContentContainerConfig>();
 
