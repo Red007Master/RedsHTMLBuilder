@@ -227,10 +227,10 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
         string other = Convert.ToString(themeNumber);
         ThemesHashes = new ThemesHashes(styles, scripts, additionalHeadContent, infoMaterialThemeConfigString, htmlTextFormaterString, globalHtmlTextFormaterString, header, footer, additionalMainDivContent, P.ExecutableHashSHA256, other);
 
-        InfoMaterialThemeMainContentContainerNodes = GenerateInfoMaterialThemeMainContentContainerNodes(infoMaterialThemeConfig.InfoMaterialThemeMainContentContainerConfigs);
+        InfoMaterialThemeMainContentContainerNodes = GenerateInfoMaterialThemeMainContentContainerNodes(infoMaterialThemeConfig.InfoMaterialThemeMainContentContainerConfigs, infoMaterialThemeConfig.Title);
     }
 
-    private List<InfoMaterialThemeMainContentContainerNode> GenerateInfoMaterialThemeMainContentContainerNodes(List<InfoMaterialThemeMainContentContainerConfig> infoMaterialThemeMainContentContainerConfigs)
+    private List<InfoMaterialThemeMainContentContainerNode> GenerateInfoMaterialThemeMainContentContainerNodes(List<InfoMaterialThemeMainContentContainerConfig> infoMaterialThemeMainContentContainerConfigs, string indicator)
     {
         List<InfoMaterialThemeMainContentContainerNode> result = new List<InfoMaterialThemeMainContentContainerNode>();
 
@@ -241,7 +241,7 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
 
             InfoMaterialThemeMainContentContainerNode temp = new InfoMaterialThemeMainContentContainerNode(infoMaterialThemeMainContentContainerConfigs[i], HtmlTextFormater);
 
-            temp.CodeContainerNodes = GenerateCodeContainerNodes(infoMaterialThemeMainContentContainerConfigs[i].InfoMaterialThemeCodeAndExplanationContainerConfigs);
+            temp.CodeContainerNodes = GenerateCodeContainerNodes(infoMaterialThemeMainContentContainerConfigs[i].InfoMaterialThemeCodeAndExplanationContainerConfigs, $"[{indicator}] in [{infoMaterialThemeMainContentContainerConfigs[i].Header}]");
 
             result.Add(temp);
         }
@@ -249,33 +249,41 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
         return result;
     }
 
-    private List<InfoMaterialThemeCodeAndExplanationContainerNode> GenerateCodeContainerNodes(List<InfoMaterialThemeCodeAndExplanationContainerConfig> infoMaterialThemeCodeAndExplanationContainerConfigs)
+    private List<InfoMaterialThemeCodeAndExplanationContainerNode> GenerateCodeContainerNodes(List<InfoMaterialThemeCodeAndExplanationContainerConfig> infoMaterialThemeCodeAndExplanationContainerConfigs, string indicator)
     {
         List<InfoMaterialThemeCodeAndExplanationContainerNode> result = new List<InfoMaterialThemeCodeAndExplanationContainerNode>();
 
         for (int i = 0; i < infoMaterialThemeCodeAndExplanationContainerConfigs.Count; i++)
         {
             InfoMaterialThemeCodeAndExplanationContainerNode temp = new InfoMaterialThemeCodeAndExplanationContainerNode();
-            temp.Elems = GenerateElems(infoMaterialThemeCodeAndExplanationContainerConfigs[i].AdditionalContentElemConfigs);
+            temp.Elems = GenerateElems(infoMaterialThemeCodeAndExplanationContainerConfigs[i].AdditionalContentElemConfigs, indicator);
             result.Add(temp);
         }
 
         return result;
     }
 
-    private List<AdditionalContentElemNodeCore> GenerateElems(List<AdditionalContentElemConfig> additionalContentElemConfigs)
+    private List<AdditionalContentElemNodeCore> GenerateElems(List<AdditionalContentElemConfig> additionalContentElemConfigs, string indicator)
     {
         List<AdditionalContentElemNodeCore> result = new List<AdditionalContentElemNodeCore>();
 
+        int totalCount = 0;
+        int codeCount = 0;
+
         for (int i = 0; i < additionalContentElemConfigs.Count; i++)
         {
+            totalCount++;
+
             if (additionalContentElemConfigs[i].Text.Length > 0)
             {
                 result.Add(new AdditionalContentTextNode(additionalContentElemConfigs[i].Text, additionalContentElemConfigs[i].Format, HtmlTextFormater));
             }
             else if (additionalContentElemConfigs[i].Code.Length > 0)
             {
-                result.Add(new AdditionalContentCodeNode(additionalContentElemConfigs[i].Code, additionalContentElemConfigs[i].LanguageClass));
+                codeCount++;
+                result.Add(new AdditionalContentCodeNode(additionalContentElemConfigs[i].Code, additionalContentElemConfigs[i].LanguageClass, $"In [{indicator}], totalCount=[{totalCount}], codeCount=[{codeCount}]"));
+
+
             }
             else if (additionalContentElemConfigs[i].Src.Length > 0)
             {
@@ -415,15 +423,51 @@ public class AdditionalContentCodeNode : AdditionalContentElemNodeCore
 {
     public string Code { get; set; }
     public string LanguageClass { get; set; }
+    public string PathFindersIndicator { get; set; }
 
-    public AdditionalContentCodeNode(string code, string languageClass)
+
+    public void TryCodeCompile(string code, string languageClass, string pathFindersIndicator)
+    {
+        if (P.ComplieCSharpCode && languageClass == "language-cs" || languageClass == "language-csharp")
+        {
+            Console.WriteLine($"[P.ComplieCSharpCode] is [{P.ComplieCSharpCode}] -!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1");
+            string codeToWorkWith = System.Net.WebUtility.HtmlDecode(code);
+            string mainMethodError = "Program does not contain a static 'Main' method suitable for an entry point".ToLower();
+
+            using (TimeLogger tl = new TimeLogger($"Building [{pathFindersIndicator}]", LogLevel.Information, P.Logger, 4))
+            {
+                CompilationResult result = CodeCompiler.CompileCode(codeToWorkWith, P.PathDirs.SharpBuild);
+
+                if (result.Success)
+                {
+                    P.Logger.Log("Build - Success!", LogLevel.Information, 5);
+                }
+                else if (!result.Success)
+                {
+                    if (result.Message.ToLower().Contains(mainMethodError))
+                    {
+                        P.Logger.Log("Build - NO MAIN!", LogLevel.Warning, 5);
+                    }
+                    else
+                    {
+                        P.Logger.Log($"Build - FAILED! MSG=[{result.Message}]", LogLevel.Error, 5);
+                        P.Logger.Log($"Code:\n\n------------------------------\n{codeToWorkWith}\n------------------------------\n\n", LogLevel.Error, 6);
+                    }
+                }
+            }
+        }
+    }
+
+    public AdditionalContentCodeNode(string code, string languageClass, string pathFindersIndicator)
     {
         Code = code;
         LanguageClass = languageClass;
+        PathFindersIndicator = pathFindersIndicator;
     }
 
     public override void Compile()
     {
+        TryCodeCompile(Code, LanguageClass, PathFindersIndicator);
         if (LanguageClass == null || LanguageClass.Length <= 0)
         {
             LanguageClass = "language-js";

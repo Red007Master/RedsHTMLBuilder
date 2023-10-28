@@ -4,7 +4,7 @@
     {
         static void Main(string[] args)
         {
-            Initalization.Start();
+            Initalization.Start(args);
 
             using (TimeLogger tl = new TimeLogger("Work.MainVoid", LogLevel.Information, P.Logger, 1))
             {

@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 internal class Initalization
 {
-    public static void Start()
+    public static void Start(string[] startArgs)
     {
         ConsoleInit();
 
@@ -11,6 +11,11 @@ internal class Initalization
 
         P.Logger = new Logger(P.PathDirs.Log, new LogSettings(LogLevel.Debug));
         P.Settings = new Settings(P.PathDirs.MainSettings);
+
+        if (startArgs.Contains("-nocomp"))
+        {
+            P.ComplieCSharpCode = false;
+        }
 
         string execPath = Assembly.GetEntryAssembly().Location;
 

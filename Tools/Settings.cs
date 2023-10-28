@@ -201,7 +201,6 @@ namespace RedsSettings
 
         public string ThemeCompileHashes { get; internal set; }
 
-
         public string ConfigFolderName { get; internal set; }
         public string DirsToScan { get; internal set; }
     } //Dev set
