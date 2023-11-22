@@ -430,7 +430,6 @@ public class AdditionalContentCodeNode : AdditionalContentElemNodeCore
     {
         if (P.ComplieCSharpCode && languageClass == "language-cs" || languageClass == "language-csharp")
         {
-            Console.WriteLine($"[P.ComplieCSharpCode] is [{P.ComplieCSharpCode}] -!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1");
             string codeToWorkWith = System.Net.WebUtility.HtmlDecode(code);
             string mainMethodError = "Program does not contain a static 'Main' method suitable for an entry point".ToLower();
 
