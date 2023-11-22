@@ -21,10 +21,17 @@ internal class Work
                 for (int j = 0; j < directories.Length; j++)
                 {
                     string lastFolderName = new DirectoryInfo(directories[j]).Name;
-                    if (lastFolderName == P.Settings.SettingsList.ConfigFolderName)
+
+                    bool countainsNoCompileFlag = File.Exists(Path.Join(directories[j], P.NoCompileFlag));
+
+                    if (lastFolderName == P.Settings.SettingsList.ConfigFolderName && !countainsNoCompileFlag)
                     {
                         P.Logger.Log($"New dir is found = [{directories[j]}]", LogLevel.Debug, 2);
                         configDirs.Add(directories[j]);
+                    }
+                    else if (countainsNoCompileFlag)
+                    {
+                        P.Logger.Log($"NoCompileFlag ([{P.NoCompileFlag}]) is found in [{directories[j]}]", LogLevel.Debug, 2);
                     }
                 }
             }
