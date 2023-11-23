@@ -22,16 +22,26 @@ internal class Work
                 {
                     string lastFolderName = new DirectoryInfo(directories[j]).Name;
 
-                    bool countainsNoCompileFlag = File.Exists(Path.Join(directories[j], P.NoCompileFlag));
+                    if (lastFolderName == P.Settings.SettingsList.ConfigFolderName)
+                    {
+                        string noCompFlagPath = Path.Join(Path.GetDirectoryName(directories[j]), P.NoCompileFlag);
 
-                    if (lastFolderName == P.Settings.SettingsList.ConfigFolderName && !countainsNoCompileFlag)
-                    {
-                        P.Logger.Log($"New dir is found = [{directories[j]}]", LogLevel.Debug, 2);
-                        configDirs.Add(directories[j]);
-                    }
-                    else if (countainsNoCompileFlag)
-                    {
-                        P.Logger.Log($"NoCompileFlag ([{P.NoCompileFlag}]) is found in [{directories[j]}]", LogLevel.Debug, 2);
+                        bool countainsNoCompileFlag = File.Exists(noCompFlagPath);
+
+                        // if (directories[j].Contains("theme13") && directories[j].Contains("csharp"))
+                        // {
+                        //     Console.WriteLine("hhhh");
+                        // }
+
+                        if (countainsNoCompileFlag)
+                        {
+                            P.Logger.Log($"NoCompileFlag ([{P.NoCompileFlag}]) is found in [{directories[j]}]", LogLevel.Debug, 2);
+                        }
+                        else
+                        {
+                            P.Logger.Log($"New dir is found = [{directories[j]}]", LogLevel.Debug, 2);
+                            configDirs.Add(directories[j]);
+                        }
                     }
                 }
             }
