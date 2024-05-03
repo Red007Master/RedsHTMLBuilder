@@ -12,9 +12,14 @@ internal class Initalization
         P.Logger = new Logger(P.PathDirs.Log, new LogSettings(LogLevel.Debug));
         P.Settings = new Settings(P.PathDirs.MainSettings);
 
-        if (startArgs.Contains("-nocomp"))
+        if (startArgs.Contains("--nocomp"))
         {
             P.ComplieCSharpCode = false;
+        }
+
+        if (startArgs.Contains("--prodout"))
+        {
+            P.CreateProductionBuild = true;
         }
 
         string execPath = Assembly.GetEntryAssembly().Location;

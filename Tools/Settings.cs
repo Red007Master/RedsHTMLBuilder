@@ -112,6 +112,8 @@ public class Settings
 
         AddSetting<string>("ThemeConfig", "ConfigFolderName", "Name of config folders.");
         AddSetting<string>("dirsThere", "DirsToScan", "Dirs that sould be scaned for config folders separated by '&&'.");
+
+        AddSetting<string>("PathOfProjectCore", "BuildProductionBuildFromThere", "Core path of the project.");
     } //Dev set
 
     private void AddSetting<Tinput>(Tinput inputValue, string inputName, string inputDescription)
@@ -203,6 +205,8 @@ namespace RedsSettings
 
         public string ConfigFolderName { get; internal set; }
         public string DirsToScan { get; internal set; }
+
+        public string BuildProductionBuildFromThere {get; internal set;}
     } //Dev set
 
     public interface ISetting

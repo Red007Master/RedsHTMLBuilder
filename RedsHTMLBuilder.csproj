@@ -8,8 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AjaxMin" Version="5.14.5506.26202" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.48" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="WebMarkupMin.Core" Version="2.16.0" />
   </ItemGroup>
 
 </Project>

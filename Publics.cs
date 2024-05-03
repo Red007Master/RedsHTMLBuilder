@@ -12,6 +12,7 @@
     public static string AppStartDate { get; set; } = String.Empty;
 
     public static bool ComplieCSharpCode {get; set;} = true;
+    public static bool CreateProductionBuild {get;set;} = false;
 
     public static string SettingsHashSHA256 { get; set; } = String.Empty;
 

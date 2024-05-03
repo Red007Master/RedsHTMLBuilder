@@ -281,7 +281,7 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
             else if (additionalContentElemConfigs[i].Code.Length > 0)
             {
                 codeCount++;
-                result.Add(new AdditionalContentCodeNode(additionalContentElemConfigs[i].Code, additionalContentElemConfigs[i].LanguageClass, $"In [{indicator}], totalCount=[{totalCount}], codeCount=[{codeCount}]"));
+                result.Add(new AdditionalContentCodeNode(additionalContentElemConfigs[i].Code, additionalContentElemConfigs[i].CodeTitle, additionalContentElemConfigs[i].LanguageClass, $"In [{indicator}], totalCount=[{totalCount}], codeCount=[{codeCount}]"));
 
 
             }
@@ -422,6 +422,7 @@ public class AdditionalContentTextNode : AdditionalContentElemNodeCore
 public class AdditionalContentCodeNode : AdditionalContentElemNodeCore
 {
     public string Code { get; set; }
+    public string CodeTitle { get; set; }
     public string LanguageClass { get; set; }
     public string PathFindersIndicator { get; set; }
 
@@ -457,9 +458,10 @@ public class AdditionalContentCodeNode : AdditionalContentElemNodeCore
         }
     }
 
-    public AdditionalContentCodeNode(string code, string languageClass, string pathFindersIndicator)
+    public AdditionalContentCodeNode(string code, string codeTitle, string languageClass, string pathFindersIndicator)
     {
         Code = code;
+        CodeTitle = codeTitle;
         LanguageClass = languageClass;
         PathFindersIndicator = pathFindersIndicator;
     }
@@ -471,7 +473,16 @@ public class AdditionalContentCodeNode : AdditionalContentElemNodeCore
         {
             LanguageClass = "language-js";
         }
-        Core = HtmlNode.CreateNode($"<div class='code-pre-container'><pre><code class='{LanguageClass}'>{Code}</code></pre></div>");
+
+        if (CodeTitle == "")
+        {
+            Core = HtmlNode.CreateNode($"<div class='code-pre-container'><pre><code class='{LanguageClass}'>{Code}</code></pre></div>");
+        }
+        else
+        {
+            Core = HtmlNode.CreateNode($"<div class='code-pre-container'><p class='code-pre-title'>{CodeTitle}:</p><pre><code class='{LanguageClass}'>{Code}</code></pre></div>");
+        }
+
     }
 }
 public class AdditionalContentImgNode : AdditionalContentElemNodeCore
@@ -652,6 +663,7 @@ public class AdditionalContentElemConfig
 {
     public string Text { get; set; } = "";
     public string Code { get; set; } = "";
+    public string CodeTitle { get; set; } = "";
     public string Src { get; set; } = "";
     public string OtherHtml { get; set; } = "";
     public string LanguageClass { get; set; }
@@ -665,10 +677,27 @@ public class AdditionalContentElemConfig
     {
         Text = text;
     }
-    public AdditionalContentElemConfig(string code, string languageClass)
+    public AdditionalContentElemConfig(string code, string codeTitle, string languageClass)
     {
         Code = code;
+        CodeTitle = codeTitle;
         LanguageClass = languageClass;
+    }
+}
+
+public class Whome{
+    public string Title { get; set; } = "";
+    public string Description { get; set; } = "";
+
+    public Whome(string title, string description){
+        Title = title;
+        Description = description;
+    }
+
+    public Whome(InfoMaterialThemeHtmlFile infoMaterialThemeHtmlFile)
+    {
+        Title = infoMaterialThemeHtmlFile.Title;
+        Description = infoMaterialThemeHtmlFile.HeaderContent;
     }
 }
 

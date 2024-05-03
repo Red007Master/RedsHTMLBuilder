@@ -1,5 +1,7 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Security.Cryptography.X509Certificates;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using WebMarkupMin.Core;
 
 internal class Work
 {
@@ -56,7 +58,159 @@ internal class Work
         }
 
         WriteThemeDataOut();
+
+        if (P.CreateProductionBuild)
+        {
+            using (TimeLogger tl = new TimeLogger($"Creating production build", LogLevel.Information, P.Logger, 2))
+            {
+                CreateProductionBuild();
+            }
+        }
     }
+
+    private static void CreateProductionBuild()
+    {
+        string corePathIn = P.Settings.SettingsList.BuildProductionBuildFromThere;
+        string corePathOut = Path.Join(corePathIn, "dev.productionOutput");
+
+        if (Directory.Exists(corePathOut))
+        {
+            Directory.Delete(corePathOut);
+        }
+
+        string[] exclude = { "dev.", ".git", "README.md" };
+
+        CopyFilesAndFolders(corePathIn, corePathOut, exclude);
+    }
+
+    public static void CopyFilesAndFolders(string copy, string copyTo, string[] excludeTriggers)
+    {
+        List<string> sourcefiles = GetAllFilesInPath(copy);
+
+        sourcefiles = ExcludeLineThatCountains(sourcefiles, excludeTriggers);
+        List<string> newPathFiles = new List<string>();
+
+        for (int i = 0; i < sourcefiles.Count; i++)
+        {
+            newPathFiles.Add(sourcefiles[i].Replace(copy, copyTo));
+        }
+
+        HtmlMinifier htmlMinifier = new HtmlMinifier();
+        var minifier = new Microsoft.Ajax.Utilities.Minifier();
+
+        for (int i = 0; i < newPathFiles.Count; i++)
+        {
+            string parentDir = Path.GetDirectoryName(newPathFiles[i]);
+            if (!Directory.Exists(parentDir))
+                Directory.CreateDirectory(parentDir);
+
+            if (newPathFiles[i].EndsWith(".html") || newPathFiles[i].EndsWith(".js") || newPathFiles[i].EndsWith(".css"))
+            {
+                string fileContentIn = File.ReadAllText(sourcefiles[i]);
+                string fileContentOut = "";
+
+                if (newPathFiles[i].EndsWith(".html"))
+                {
+                    MarkupMinificationResult result = htmlMinifier.Minify(fileContentIn);
+                    fileContentOut = result.MinifiedContent;
+                }
+                else if (newPathFiles[i].EndsWith(".js"))
+                {
+                    fileContentOut = minifier.MinifyJavaScript(fileContentIn);
+                }
+                else if (newPathFiles[i].EndsWith(".css"))
+                {
+                    fileContentOut = RemoveWhiteSpaceFromStylesheets(fileContentIn);
+                }
+
+                File.WriteAllText(newPathFiles[i], fileContentOut);
+            }
+            else
+            {
+                File.Copy(sourcefiles[i], newPathFiles[i]);
+            }
+        }
+    }
+    public static List<string> GetAllFoldersInPath(string path)
+    {
+        List<string> result = new List<string>();
+        Queue<string> tmpQueue = new Queue<string>();
+
+        tmpQueue.Enqueue(path);
+
+        while (tmpQueue.Count > 0)
+        {
+            string current = tmpQueue.Dequeue();
+
+            result.Add(current);
+
+            string[] files = Directory.GetDirectories(current);
+
+            for (int i = 0; i < files.Length; i++)
+                tmpQueue.Enqueue(files[i]);
+        }
+
+        return result;
+    }
+
+    public static List<string> GetAllFilesInPath(string path)
+    {
+        List<string> result = new List<string>();
+
+        List<string> foldersInPath = GetAllFoldersInPath(path);
+
+        for (int i = foldersInPath.Count - 1; i >= 0; i--)
+        {
+            result.AddRange(Directory.GetFiles(foldersInPath[i]));
+        }
+
+        return result;
+    }
+
+    public static List<string> ExcludeLineThatCountains(List<string> lines, string[] excludeTriggers)
+    {
+        List<string> result = new List<string>();
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            if (!ContainsAnyString(lines[i], excludeTriggers))
+            {
+                result.Add(lines[i]);
+            }
+        }
+
+        return result;
+    }
+
+    public static bool ContainsAnyString(string input, string[] searchStrings)
+    {
+        foreach (string searchString in searchStrings)
+        {
+            if (input.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) != -1)
+                return true; // Found a match
+        }
+
+        return false; // No matches found
+    }
+
+
+
+    public static string RemoveWhiteSpaceFromStylesheets(string body)
+    {
+        body = Regex.Replace(body, @"[a-zA-Z]+#", "#");
+        body = Regex.Replace(body, @"[\n\r]+\s*", string.Empty);
+        body = Regex.Replace(body, @"\s+", " ");
+        body = Regex.Replace(body, @"\s?([:,;{}])\s?", "$1");
+        body = body.Replace(";}", "}");
+        body = Regex.Replace(body, @"([\s:]0)(px|pt|%|em)", "$1");
+
+        // Remove comments from CSS
+
+        body = Regex.Replace(body, @"/\*[\d\D]*?\*/", string.Empty);
+
+        return body;
+    }
+
 
     public static void WriteThemeDataOut()
     {
@@ -273,9 +427,10 @@ internal class Work
 
         if (loaded)
         {
-            CompileAndSaveIfConfigIfNewer(infoMaterialThemeHtmlFile, coreDir, "theme.html");
-            CompileAndSaveIfConfigIfNewer(infoMaterialTaskHtmlFile, coreDir, "tasks.html");
-            CompileAndSaveIfConfigIfNewer(infoMaterialResultHtmlFile, coreDir, "result.html");
+            CompileAndSaveIfConfigIsNewer(infoMaterialThemeHtmlFile, coreDir, "theme.html");
+            CompileAndSaveIfConfigIsNewer(infoMaterialTaskHtmlFile, coreDir, "tasks.html");
+            CompileAndSaveIfConfigIsNewer(infoMaterialResultHtmlFile, coreDir, "result.html");
+            WriteWhome(infoMaterialThemeHtmlFile, coreDir, "whome.json");
 
             result = true;
         }
@@ -299,45 +454,38 @@ internal class Work
         }
     }
 
-    public static bool CompileAndSaveIfConfigIfNewer(InfoMaterialThemeHtmlFile infoMaterialThemeHtmlFile, string coreDir, string fileName)
+    public static bool CompileAndSaveIfConfigIsNewer(InfoMaterialThemeHtmlFile infoMaterialThemeHtmlFile, string coreDir, string fileName)
     {
         bool compiledAndSaved = false;
 
-        string htmlSavePathCore = MoveDirectoriesDown(coreDir, 2);
-        string htmlSavePath = Path.Combine(htmlSavePathCore, fileName);
-
-        string[] fileNameArray = fileName.Split('.');
+        string htmlSavePath = Path.Combine(MoveDirectoriesDown(coreDir, 2), fileName);
+        string[] array = fileName.Split('.');
         string[] themeCompileHashFileNameArray = P.Settings.SettingsList.ThemeCompileHashes.Split('.');
-
         string fileNameStart = themeCompileHashFileNameArray[0];
-        string fileNameMid = fileNameArray[0].FirstCharToUpper();
+        string fileNameMid = array[0].FirstCharToUpper();
         string fileNameEnd = "." + themeCompileHashFileNameArray[1];
-
         string themesHashesFileName = fileNameStart + fileNameMid + fileNameEnd;
-
         string themeCompileHashesPath = Path.Combine(coreDir, themesHashesFileName);
-
         ThemesHashes oldThemesHashes = new ThemesHashes();
+
         if (File.Exists(themeCompileHashesPath))
         {
             oldThemesHashes = JsonConvert.DeserializeObject<ThemesHashes>(File.ReadAllText(themeCompileHashesPath));
         }
 
-        P.Logger.Log($"CompileAndSaveIfConfigIfNewer - working with [{fileName}]", LogLevel.Debug, 2);
-        if (!(infoMaterialThemeHtmlFile.ThemesHashes == oldThemesHashes) || !(File.Exists(htmlSavePath)))
+        P.Logger.Log($"CompileAndSaveIfConfigIsNewer - working with [{fileName}]", LogLevel.Debug, 2);
+        if (!(infoMaterialThemeHtmlFile.ThemesHashes == oldThemesHashes) || !File.Exists(htmlSavePath))
         {
             compiledAndSaved = true;
-
-            using (TimeLogger tl = new TimeLogger("Config hash change, proceeding to compile and save file", LogLevel.Debug, P.Logger, 3))
+            using (new TimeLogger("Config hash change, proceeding to compile and save file", LogLevel.Debug, P.Logger, 3))
             {
-                using (TimeLogger tl2 = new TimeLogger($"Compiling - [{fileName}]", LogLevel.Debug, P.Logger, 4))
+                using (new TimeLogger("Compiling - [" + fileName + "]", LogLevel.Debug, P.Logger, 4))
                 {
                     infoMaterialThemeHtmlFile.Compile();
                 }
-                using (TimeLogger tl2 = new TimeLogger($"Saving - [{fileName}] and [{themesHashesFileName}]", LogLevel.Debug, P.Logger, 3))
+                using (new TimeLogger($"Saving - [{fileName}] and [{themesHashesFileName}]", LogLevel.Debug, P.Logger, 3))
                 {
                     File.WriteAllText(htmlSavePath, infoMaterialThemeHtmlFile.ToString());
-
                     string serial = JsonConvert.SerializeObject(infoMaterialThemeHtmlFile.ThemesHashes, Formatting.Indented);
                     File.WriteAllText(themeCompileHashesPath, serial);
                 }
@@ -347,6 +495,21 @@ internal class Work
         {
             P.Logger.Log("Config hash is the same, proceeding without changes", LogLevel.Debug, 3);
         }
+
+        return compiledAndSaved;
+    }
+    public static bool WriteWhome(InfoMaterialThemeHtmlFile infoMaterialThemeHtmlFile, string coreDir, string fileName)
+    {
+        bool compiledAndSaved = false;
+
+        Whome whome = new Whome(infoMaterialThemeHtmlFile);
+
+        string htmlSavePathCore = MoveDirectoriesDown(coreDir, 2);
+        string whomeSavePath = Path.Combine(htmlSavePathCore, fileName);
+
+        string whomeSerial = JsonConvert.SerializeObject(whome, Formatting.Indented);
+
+        File.WriteAllText(whomeSavePath, whomeSerial);
 
         return compiledAndSaved;
     }
@@ -390,110 +553,111 @@ internal class Work
         // You can perform further operations using the new path
         return path;
     }
-}
-
-public class InfoMaterialThemeProjectDirs
-{
-    public string InfoMaterialThemeConfig { get; set; }
-    public string InfoMaterialTaskConfig { get; set; }
-    public string InfoMaterialResultConfig { get; set; }
-
-    public string TextFormater { get; set; }
-
-    public string Styles { get; set; }
-    public string Scripts { get; set; }
-
-    public string AdditionalHeadContent { get; set; }
-    public string AdditionalMainDivContent { get; set; }
 
 
-    public string Header { get; set; }
-    public string Footer { get; set; }
-
-    public InfoMaterialThemeProjectDirs(string corePath)
+    public class InfoMaterialThemeProjectDirs
     {
-        bool anyFileIsMising = true;
+        public string InfoMaterialThemeConfig { get; set; }
 
-        InfoMaterialThemeConfig = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.CurrentThemeConfig));
-        InfoMaterialTaskConfig = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.CurrentTaskConfig));
-        InfoMaterialResultConfig = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.CurrentResultConfig));
+        public string InfoMaterialTaskConfig { get; set; }
+        public string InfoMaterialResultConfig { get; set; }
 
-        TextFormater = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.CurrentHtmlTextFormaterConfig));
+        public string TextFormater { get; set; }
 
-        Styles = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.StylesToUse));
-        Scripts = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.ScriptsToUse));
+        public string Styles { get; set; }
+        public string Scripts { get; set; }
 
-        AdditionalHeadContent = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.AdditionalHeadContent));
-        AdditionalMainDivContent = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.AdditionalMainDivContent));
+        public string AdditionalHeadContent { get; set; }
+        public string AdditionalMainDivContent { get; set; }
 
-        Header = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.HeaderElement));
-        Footer = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.FooterElement));
 
-        anyFileIsMising = InfoMaterialThemeConfig == null || InfoMaterialTaskConfig == null || InfoMaterialResultConfig == null || TextFormater == null || Styles == null || Scripts == null || AdditionalHeadContent == null || AdditionalMainDivContent == null || Header == null || Footer == null;
+        public string Header { get; set; }
+        public string Footer { get; set; }
 
-        if (anyFileIsMising)
+        public InfoMaterialThemeProjectDirs(string corePath)
         {
-            P.Logger.Log($"Files is missing in [{corePath}]!", LogLevel.FatalError, 3);
-            string filesData =
-                $"                      [InfoMaterialThemeConfig-------]=[{InfoMaterialThemeConfig}]\n" +
-                $"                      [InfoMaterialTaskConfig--------]=[{InfoMaterialTaskConfig}]\n" +
-                $"                      [InfoMaterialResultConfig------]=[{InfoMaterialResultConfig}]\n" +
-                $"                      [TextFormater--------------]=[{TextFormater}]\n" +
-                $"                      [Styles--------------------]=[{Styles}]\n" +
-                $"                      [Scripts-------------------]=[{Scripts}]\n" +
-                $"                      [AdditionalHeadContent-----]=[{AdditionalHeadContent}]\n" +
-                $"                      [AdditionalMainDivContent--]=[{AdditionalMainDivContent}]\n" +
-                $"                      [Header--------------------]=[{Header}]\n" +
-                $"                      [Footer--------------------]=[{Footer}]";
+            bool anyFileIsMising = true;
 
-            P.Logger.Log($"Files:\n{filesData}", LogLevel.FatalError, 4);
-        }
-        else
-        {
-            P.Logger.Log($"All files is present in [{corePath}]!", LogLevel.Information, 3);
-        }
+            InfoMaterialThemeConfig = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.CurrentThemeConfig));
+            InfoMaterialTaskConfig = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.CurrentTaskConfig));
+            InfoMaterialResultConfig = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.CurrentResultConfig));
 
-        if (InfoMaterialThemeConfig == null || InfoMaterialTaskConfig == null || InfoMaterialResultConfig == null)
-        {
-            if (InfoMaterialThemeConfig == null)
+            TextFormater = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.CurrentHtmlTextFormaterConfig));
+
+            Styles = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.StylesToUse));
+            Scripts = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.ScriptsToUse));
+
+            AdditionalHeadContent = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.AdditionalHeadContent));
+            AdditionalMainDivContent = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.AdditionalMainDivContent));
+
+            Header = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.HeaderElement));
+            Footer = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.FooterElement));
+
+            anyFileIsMising = InfoMaterialThemeConfig == null || InfoMaterialTaskConfig == null || InfoMaterialResultConfig == null || TextFormater == null || Styles == null || Scripts == null || AdditionalHeadContent == null || AdditionalMainDivContent == null || Header == null || Footer == null;
+
+            if (anyFileIsMising)
             {
-                P.Logger.Log("InfoMaterialThemeConfig is missing, writing dummy.", LogLevel.Information, 5);
-                string json = JsonConvert.SerializeObject(new InfoMaterialThemeConfig(InfoMaterialThemeConfigType.Theme));
+                P.Logger.Log($"Files is missing in [{corePath}]!", LogLevel.FatalError, 3);
+                string filesData =
+                    $"                      [InfoMaterialThemeConfig-------]=[{InfoMaterialThemeConfig}]\n" +
+                    $"                      [InfoMaterialTaskConfig--------]=[{InfoMaterialTaskConfig}]\n" +
+                    $"                      [InfoMaterialResultConfig------]=[{InfoMaterialResultConfig}]\n" +
+                    $"                      [TextFormater--------------]=[{TextFormater}]\n" +
+                    $"                      [Styles--------------------]=[{Styles}]\n" +
+                    $"                      [Scripts-------------------]=[{Scripts}]\n" +
+                    $"                      [AdditionalHeadContent-----]=[{AdditionalHeadContent}]\n" +
+                    $"                      [AdditionalMainDivContent--]=[{AdditionalMainDivContent}]\n" +
+                    $"                      [Header--------------------]=[{Header}]\n" +
+                    $"                      [Footer--------------------]=[{Footer}]";
 
-                File.WriteAllText(Path.Combine(corePath, P.Settings.SettingsList.CurrentThemeConfig), json);
+                P.Logger.Log($"Files:\n{filesData}", LogLevel.FatalError, 4);
             }
-            if (InfoMaterialTaskConfig == null)
+            else
             {
-                P.Logger.Log("InfoMaterialTaskConfig is missing, writing dummy.", LogLevel.Information, 5);
-                string json = JsonConvert.SerializeObject(new InfoMaterialThemeConfig(InfoMaterialThemeConfigType.Tasks));
-
-                File.WriteAllText(Path.Combine(corePath, P.Settings.SettingsList.CurrentTaskConfig), json);
+                P.Logger.Log($"All files is present in [{corePath}]!", LogLevel.Information, 3);
             }
-            if (InfoMaterialResultConfig == null)
-            {
-                P.Logger.Log("InfoMaterialResultConfig is missing, writing dummy.", LogLevel.Information, 5);
-                string json = JsonConvert.SerializeObject(new InfoMaterialThemeConfig(InfoMaterialThemeConfigType.Results));
 
-                File.WriteAllText(Path.Combine(corePath, P.Settings.SettingsList.CurrentResultConfig), json);
+            if (InfoMaterialThemeConfig == null || InfoMaterialTaskConfig == null || InfoMaterialResultConfig == null)
+            {
+                if (InfoMaterialThemeConfig == null)
+                {
+                    P.Logger.Log("InfoMaterialThemeConfig is missing, writing dummy.", LogLevel.Information, 5);
+                    string json = JsonConvert.SerializeObject(new InfoMaterialThemeConfig(InfoMaterialThemeConfigType.Theme));
+
+                    File.WriteAllText(Path.Combine(corePath, P.Settings.SettingsList.CurrentThemeConfig), json);
+                }
+                if (InfoMaterialTaskConfig == null)
+                {
+                    P.Logger.Log("InfoMaterialTaskConfig is missing, writing dummy.", LogLevel.Information, 5);
+                    string json = JsonConvert.SerializeObject(new InfoMaterialThemeConfig(InfoMaterialThemeConfigType.Tasks));
+
+                    File.WriteAllText(Path.Combine(corePath, P.Settings.SettingsList.CurrentTaskConfig), json);
+                }
+                if (InfoMaterialResultConfig == null)
+                {
+                    P.Logger.Log("InfoMaterialResultConfig is missing, writing dummy.", LogLevel.Information, 5);
+                    string json = JsonConvert.SerializeObject(new InfoMaterialThemeConfig(InfoMaterialThemeConfigType.Results));
+
+                    File.WriteAllText(Path.Combine(corePath, P.Settings.SettingsList.CurrentResultConfig), json);
+                }
+            }
+        }
+
+        public string IfPathExistReturnPathElseNull(string path)
+        {
+            bool exist = File.Exists(path);
+
+            if (exist)
+            {
+                return path;
+            }
+            else
+            {
+                return null;
             }
         }
     }
-
-    public string IfPathExistReturnPathElseNull(string path)
-    {
-        bool exist = File.Exists(path);
-
-        if (exist)
-        {
-            return path;
-        }
-        else
-        {
-            return null;
-        }
-    }
 }
-
 public static class StringExtensions
 {
     public static string FirstCharToUpper(this string input) =>
