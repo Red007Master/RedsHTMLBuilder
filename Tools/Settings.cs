@@ -114,6 +114,7 @@ public class Settings
         AddSetting<string>("dirsThere", "DirsToScan", "Dirs that sould be scaned for config folders separated by '&&'.");
 
         AddSetting<string>("PathOfProjectCore", "BuildProductionBuildFromThere", "Core path of the project.");
+        AddSetting<string>("TheEagleHasLanded", "ResultEncryptionKey", "Encryption key for encrypted theme.");
     } //Dev set
 
     private void AddSetting<Tinput>(Tinput inputValue, string inputName, string inputDescription)
@@ -207,6 +208,7 @@ namespace RedsSettings
         public string DirsToScan { get; internal set; }
 
         public string BuildProductionBuildFromThere {get; internal set;}
+        public string ResultEncryptionKey {get; internal set;}
     } //Dev set
 
     public interface ISetting

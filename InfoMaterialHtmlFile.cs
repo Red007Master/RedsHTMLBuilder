@@ -1,5 +1,7 @@
-﻿using HtmlAgilityPack;
+﻿using System.Text.RegularExpressions;
+using HtmlAgilityPack;
 using Newtonsoft.Json;
+using RedsHTMLBuilder.Tools;
 
 public class HtmlFile
 {
@@ -16,13 +18,13 @@ public class HtmlFile
     {
         for (int i = 0; i < AdditionalHeadContent.Count; i++)
         {
-            HtmlNode scriptNode = HtmlNode.CreateNode(AdditionalHeadContent[i]);
-            HeadNode.AppendChild(scriptNode);
+            HtmlNode additionalHeadContentNode = HtmlNode.CreateNode(AdditionalHeadContent[i]);
+            HeadNode.AppendChild(additionalHeadContentNode);
         }
         for (int i = 0; i < Styles.Count; i++)
         {
-            HtmlNode scriptNode = HtmlNode.CreateNode($@"<link rel='stylesheet' href='{Styles[i]}'>");
-            HeadNode.AppendChild(scriptNode);
+            HtmlNode stylesNode = HtmlNode.CreateNode($@"<link rel='stylesheet' href='{Styles[i]}'>");
+            HeadNode.AppendChild(stylesNode);
         }
         for (int i = 0; i < Scripts.Count; i++)
         {
@@ -90,6 +92,8 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
     public HtmlNode ContentNode { get; set; }
     public HtmlNode FooterNode { get; set; }
 
+    public bool MainContainerIsEncrypted = false;
+
     public HtmlTextFormater HtmlTextFormater { get; set; }
 
     public List<InfoMaterialThemeMainContentContainerNode> InfoMaterialThemeMainContentContainerNodes = new List<InfoMaterialThemeMainContentContainerNode>();
@@ -139,7 +143,22 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
             ContentNode.AppendChild(InfoMaterialThemeMainContentContainerNodes[i].Core);
         }
 
-        BodyNode.AppendChild(ContentNode);
+        //there to encode code div content
+
+        if (MainContainerIsEncrypted)
+        {
+            Scripts.Insert(0, "../../../scripts/decrypt_dialogue.js");
+
+            string encryptedContentDiv = StringsTools.EncryptString(ContentNode.OuterHtml, P.Settings.SettingsList.ResultEncryptionKey);
+
+            HtmlNode payloadCarier = HtmlNode.CreateNode($"<div class='encrypted-content-node' id='encrypted-content-node'>{encryptedContentDiv}</div>");
+
+            BodyNode.AppendChild(payloadCarier);
+        }
+        else
+        {
+            BodyNode.AppendChild(ContentNode);
+        }
 
         //TODO
 
@@ -287,7 +306,7 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
             }
             else if (additionalContentElemConfigs[i].Src.Length > 0)
             {
-                if (additionalContentElemConfigs[i].Src.EndsWith(".mp4"))
+                if (additionalContentElemConfigs[i].Src.EndsWith(".mp4") || additionalContentElemConfigs[i].Src.EndsWith(".mkv"))
                 {
                     result.Add(new AdditionalContentVideoNode(additionalContentElemConfigs[i].Src));
                 }
@@ -685,19 +704,44 @@ public class AdditionalContentElemConfig
     }
 }
 
-public class Whome{
+public class Whome
+{
     public string Title { get; set; } = "";
     public string Description { get; set; } = "";
+    public string Path { get; set; } = "";
+    public int ThemeNumber { get; set; } = -1;
 
-    public Whome(string title, string description){
+    public Whome(string title, string description)
+    {
         Title = title;
         Description = description;
     }
 
-    public Whome(InfoMaterialThemeHtmlFile infoMaterialThemeHtmlFile)
+    public Whome(InfoMaterialThemeHtmlFile infoMaterialThemeHtmlFile, int themeNumber, string path)
     {
         Title = infoMaterialThemeHtmlFile.Title;
         Description = infoMaterialThemeHtmlFile.HeaderContent;
+        ThemeNumber = themeNumber;
+        Path = path;
+    }
+}
+
+public class WhomeComparer : IComparer<Whome>
+{
+    public int Compare(Whome x, Whome y)
+    {
+        return x.ThemeNumber.CompareTo(y.ThemeNumber);
+    }
+}
+
+public class CourseWhome{
+    public string CourseTitle {get; set;} = String.Empty;
+
+    public List<Whome> Whomes {get; set; } = new List<Whome>();
+
+    internal void Sort()
+    {
+        Whomes.Sort(new WhomeComparer());
     }
 }
 

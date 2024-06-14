@@ -1,15 +1,16 @@
 ﻿using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using NUglify;
 using WebMarkupMin.Core;
 
 internal class Work
 {
     public static void MainVoid()
     {
-        List<string> configDirs = new List<string>();
-
         List<string> lookForConfigsIn = new List<string>();
+
+        List<CourseWhome> courseWhomes = new List<CourseWhome>();
 
         string[] separators = { "&&" };
         lookForConfigsIn = P.Settings.SettingsList.DirsToScan.Split(separators, System.StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -19,6 +20,10 @@ internal class Work
             for (int i = 0; i < lookForConfigsIn.Count; i++)
             {
                 string[] directories = Directory.GetDirectories(lookForConfigsIn[i], "*", System.IO.SearchOption.AllDirectories);
+
+                CourseWhome courseWhome = new CourseWhome();
+
+                courseWhome.CourseTitle = new DirectoryInfo(lookForConfigsIn[i]).Name;
 
                 for (int j = 0; j < directories.Length; j++)
                 {
@@ -42,20 +47,32 @@ internal class Work
                         else
                         {
                             P.Logger.Log($"New dir is found = [{directories[j]}]", LogLevel.Debug, 2);
-                            configDirs.Add(directories[j]);
+
+                            using (TimeLogger tl2 = new TimeLogger($"Loading and Compiling theme in this dir", LogLevel.Information, P.Logger, 3))
+                            {
+                                Whome resultWhome = CheckedDirAndLoadInfoMaterialThemesIfPresent(directories[j]);
+                                if (resultWhome != null)
+                                {
+                                    courseWhome.Whomes.Add(resultWhome);
+                                }
+                            }
                         }
                     }
                 }
+
+                courseWhomes.Add(courseWhome);
             }
+
+
         }
 
-        using (TimeLogger tl = new TimeLogger($"Loading and Compiling themes, total count=[{configDirs.Count}]", LogLevel.Information, P.Logger, 1))
+        for (int i = 0; i < courseWhomes.Count; i++)
         {
-            for (int i = 0; i < configDirs.Count; i++)
-            {
-                CheckedDirAndLoadInfoMaterialThemesIfPresent(configDirs[i]);
-            }
+            courseWhomes[i].Sort();
         }
+
+        string serialCourseWhomes = JsonConvert.SerializeObject(courseWhomes);
+        File.WriteAllText(Path.Join(P.Settings.SettingsList.BuildProductionBuildFromThere, "naviGator", "whomes.json"), serialCourseWhomes);
 
         WriteThemeDataOut();
 
@@ -75,7 +92,7 @@ internal class Work
 
         if (Directory.Exists(corePathOut))
         {
-            Directory.Delete(corePathOut);
+            Directory.Delete(corePathOut, true);
         }
 
         string[] exclude = { "dev.", ".git", "README.md" };
@@ -113,10 +130,16 @@ internal class Work
                 {
                     MarkupMinificationResult result = htmlMinifier.Minify(fileContentIn);
                     fileContentOut = result.MinifiedContent;
+
+                    if (fileContentOut.Length < 10)
+                    {
+                        fileContentOut = fileContentIn;
+                    }
                 }
                 else if (newPathFiles[i].EndsWith(".js"))
                 {
-                    fileContentOut = minifier.MinifyJavaScript(fileContentIn);
+                    fileContentOut = Minify(fileContentIn);
+                    // fileContentOut = fileContentIn;
                 }
                 else if (newPathFiles[i].EndsWith(".css"))
                 {
@@ -193,6 +216,21 @@ internal class Work
         return false; // No matches found
     }
 
+    public static string Minify(string jsCode)
+    {
+        UglifyResult result = Uglify.Js(jsCode);
+        if (result.Errors.Count > 0)
+        {
+            // Handle errors
+            foreach (var error in result.Errors)
+            {
+                Console.WriteLine($"Error: {error.Message}");
+            }
+            return null;
+        }
+
+        return result.Code;
+    }
 
 
     public static string RemoveWhiteSpaceFromStylesheets(string body)
@@ -356,10 +394,11 @@ internal class Work
         return new InfoMaterialThemeHtmlFile(styles, scripts, additionalHeadContent, infoMaterialThemeConfig, TextFormater, GlobalTextFormater, header, footer, additionalMainDivContent, themeNumber);
     }
 
-    public static bool CheckedDirAndLoadInfoMaterialThemesIfPresent(string coreDir)
+    public static Whome CheckedDirAndLoadInfoMaterialThemesIfPresent(string coreDir)
     {
-        bool result = false;
         bool loaded = false;
+        int themeNumber = 0;
+        string themePath = "";
 
         InfoMaterialThemeHtmlFile infoMaterialThemeHtmlFile = new InfoMaterialThemeHtmlFile();
         InfoMaterialThemeHtmlFile infoMaterialTaskHtmlFile = new InfoMaterialThemeHtmlFile();
@@ -371,10 +410,10 @@ internal class Work
             {
                 P.Logger.Log($"Dir exist, proceeding:", LogLevel.Information, 3);
 
-
-
                 string parentThemeNameTmp = MoveDirectoriesDown(coreDir, 3);
                 string parentThemeName = GetLastFolderName(parentThemeNameTmp);
+                themePath = Path.Join(themePath, "courses");
+                themePath = Path.Join(themePath, parentThemeName);
 
                 bool parentNameIsAlredyInList = false;
                 for (int i = 0; i < P.ProcessedThemes.Count; i++)
@@ -398,11 +437,14 @@ internal class Work
 
                 string[] pathArray = coreDir.Split(Path.DirectorySeparatorChar);
                 string themeFolderName = pathArray[pathArray.Length - 3];
-                int themeNumber = RemoveNonNumericCharactersAndReturnNumberOrZero(themeFolderName);
+                themePath = Path.Join(themePath, themeFolderName);
+                themeNumber = RemoveNonNumericCharactersAndReturnNumberOrZero(themeFolderName);
 
                 infoMaterialThemeHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialThemeConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
                 infoMaterialTaskHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialTaskConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
                 infoMaterialResultHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialResultConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
+
+                infoMaterialResultHtmlFile.MainContainerIsEncrypted = true;
 
                 for (int i = 0; i < P.ProcessedThemes.Count; i++)
                 {
@@ -425,17 +467,19 @@ internal class Work
             }
         }
 
-        if (loaded)
+        if (loaded && themeNumber > 0)
         {
             CompileAndSaveIfConfigIsNewer(infoMaterialThemeHtmlFile, coreDir, "theme.html");
             CompileAndSaveIfConfigIsNewer(infoMaterialTaskHtmlFile, coreDir, "tasks.html");
             CompileAndSaveIfConfigIsNewer(infoMaterialResultHtmlFile, coreDir, "result.html");
-            WriteWhome(infoMaterialThemeHtmlFile, coreDir, "whome.json");
 
-            result = true;
+            // WriteWhome(infoMaterialThemeHtmlFile, coreDir, "whome.json");
+            Whome whome = new Whome(infoMaterialThemeHtmlFile, themeNumber, themePath);
+
+            return whome;
         }
 
-        return result;
+        return null;
     }
 
     static int RemoveNonNumericCharactersAndReturnNumberOrZero(string input)
@@ -498,21 +542,21 @@ internal class Work
 
         return compiledAndSaved;
     }
-    public static bool WriteWhome(InfoMaterialThemeHtmlFile infoMaterialThemeHtmlFile, string coreDir, string fileName)
-    {
-        bool compiledAndSaved = false;
+    // public static bool WriteWhome(InfoMaterialThemeHtmlFile infoMaterialThemeHtmlFile, string coreDir, string fileName)
+    // {
+    //     bool compiledAndSaved = false;
 
-        Whome whome = new Whome(infoMaterialThemeHtmlFile);
+    //     Whome whome = new Whome(infoMaterialThemeHtmlFile);
 
-        string htmlSavePathCore = MoveDirectoriesDown(coreDir, 2);
-        string whomeSavePath = Path.Combine(htmlSavePathCore, fileName);
+    //     string htmlSavePathCore = MoveDirectoriesDown(coreDir, 2);
+    //     string whomeSavePath = Path.Combine(htmlSavePathCore, fileName);
 
-        string whomeSerial = JsonConvert.SerializeObject(whome, Formatting.Indented);
+    //     string whomeSerial = JsonConvert.SerializeObject(whome, Formatting.Indented);
 
-        File.WriteAllText(whomeSavePath, whomeSerial);
+    //     File.WriteAllText(whomeSavePath, whomeSerial);
 
-        return compiledAndSaved;
-    }
+    //     return compiledAndSaved;
+    // }
     static string GetLastFolderName(string path)
     {
         // Use Path class to split the path into individual directory parts
