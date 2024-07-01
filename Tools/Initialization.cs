@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using Newtonsoft.Json;
+using RedsHTMLBuilder.Tools;
 
 internal class Initalization
 {
@@ -41,22 +42,12 @@ internal class Initalization
     {
         Console.ForegroundColor = ConsoleColor.Green;
         Console.Title = "RedsHTMLBuilder";
-
-        try
-        {
-#pragma warning disable CA1416 // Validate platform compatibility
-            //Console.WindowWidth = 200;
-#pragma warning restore CA1416 // Validate platform compatibility
-        }
-        catch (Exception)
-        {
-            P.Logger.Log("Console.WindowWidth = 200 can't be set", LogLevel.Warning);
-        }
     }
     private static void PathDirsInit()
     {
         string currentPath = Environment.CurrentDirectory;
-        currentPath = @"/media/M2King1tb/Development/RedsSoft/RedsHTMLBuilder"; //DEV
+
+        currentPath = PersonalInit.GetPersonalDevPath(); //DEV
 
         P.PathDirs.SetFromExecutionPath(currentPath, P.PathNames);
         Dir.CreateAllDirsInObject(P.PathDirs);
