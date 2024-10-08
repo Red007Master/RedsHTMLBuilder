@@ -7,7 +7,7 @@ namespace RedsHTMLBuilder.Tools
 {
     public class PersonalInit
     {
-        public static string GetPersonalDevPath()
+        internal static string GetPersonalDevPath()
         {
             return @"/media/M2King1tb/sync/dev/personal/RedsSoft/RedsHTMLBuilder";
         }

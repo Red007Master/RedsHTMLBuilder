@@ -43,7 +43,7 @@ public class PathNames : PathCoreClass
         Core = "RedsHTMLBuilder";
 
         MainSettings = "Settings.txt";                                              //f12
-        Log = "Log.txt";                                                            //f12
+        Log = "Log.log";                                                            //f12
 
         Util = "Util";                                                              //d12
         SharpBuild = "SharpBuild";                                                  //d123
