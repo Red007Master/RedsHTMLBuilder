@@ -9,7 +9,7 @@ namespace RedsHTMLBuilder.Tools
     {
         internal static string GetPersonalDevPath()
         {
-            return @"/media/M2King1tb/sync/dev/personal/RedsSoft/RedsHTMLBuilder";
+            return "/media/fatpolishman/sync/dev/personal/RedsSoft/RedsHTMLBuilder";
         }
     }
 }

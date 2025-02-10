@@ -115,6 +115,8 @@ public class Settings
 
         AddSetting<string>("PathOfProjectCore", "BuildProductionBuildFromThere", "Core path of the project.");
         AddSetting<string>("TheEagleHasLanded", "ResultEncryptionKey", "Encryption key for encrypted theme.");
+
+        AddSetting<string>("dev.,.git,README.md,deploy.sh", "ProductionBuildExcludeTriggers", "Substring/strings that will triger exclusion of the file from production build.");
     } //Dev set
 
     private void AddSetting<Tinput>(Tinput inputValue, string inputName, string inputDescription)
@@ -209,6 +211,8 @@ namespace RedsSettings
 
         public string BuildProductionBuildFromThere {get; internal set;}
         public string ResultEncryptionKey {get; internal set;}
+
+        public string ProductionBuildExcludeTriggers {get; internal set;}
     } //Dev set
 
     public interface ISetting

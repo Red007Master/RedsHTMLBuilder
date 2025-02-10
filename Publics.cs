@@ -13,6 +13,8 @@
 
     public static bool ComplieCSharpCode {get; set;} = true;
     public static bool CreateProductionBuild {get;set;} = false;
+    public static bool ConfigureGator {get;set;} = false;
+    public static string[] GatorAddTargets { get; set; } = new string[0];
 
     public static string SettingsHashSHA256 { get; set; } = String.Empty;
 

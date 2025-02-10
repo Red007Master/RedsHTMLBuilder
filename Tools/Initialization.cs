@@ -25,6 +25,19 @@ internal class Initalization
             P.CreateProductionBuild = true;
         }
 
+        if (startArgs.Contains("--gatoradd"))
+        {
+            P.ConfigureGator = true;
+
+            int index = Array.IndexOf(startArgs, "--gatoradd");
+
+            string gatorAddArgs = startArgs[index + 1];
+
+            P.Logger.Log($"'gatoradd' arg detected, with value:[{gatorAddArgs}]", LogLevel.Information, 1);
+
+            P.GatorAddTargets = gatorAddArgs.Split(',');
+        }
+
         string execPath = Assembly.GetEntryAssembly().Location;
 
         using (TimeLogger tl = new TimeLogger("Getting exec info and hash", LogLevel.Information, P.Logger, 1))
@@ -47,7 +60,7 @@ internal class Initalization
     {
         string currentPath = Environment.CurrentDirectory;
 
-        currentPath = PersonalInit.GetPersonalDevPath(); //DEV
+        // currentPath = PersonalInit.GetPersonalDevPath(); //DEV
 
         P.PathDirs.SetFromExecutionPath(currentPath, P.PathNames);
         Dir.CreateAllDirsInObject(P.PathDirs);

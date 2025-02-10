@@ -66,13 +66,22 @@ internal class Work
 
         }
 
-        for (int i = 0; i < courseWhomes.Count; i++)
+        if (P.ConfigureGator)
         {
-            courseWhomes[i].Sort();
-        }
+            List<CourseWhome> tmpWhomes = new List<CourseWhome>();
 
-        string serialCourseWhomes = JsonConvert.SerializeObject(courseWhomes);
-        File.WriteAllText(Path.Join(P.Settings.SettingsList.BuildProductionBuildFromThere, "naviGator", "whomes.json"), serialCourseWhomes);
+            for (int i = 0; i < courseWhomes.Count; i++)
+            {
+                if (P.GatorAddTargets.Contains(courseWhomes[i].CourseTitle))
+                {
+                    courseWhomes[i].Sort();
+                    tmpWhomes.Add(courseWhomes[i]);
+                }
+            }
+
+            string serialCourseWhomes = JsonConvert.SerializeObject(tmpWhomes);
+            File.WriteAllText(Path.Join(P.Settings.SettingsList.BuildProductionBuildFromThere, "naviGator", "whomes.json"), serialCourseWhomes);
+        }
 
         WriteThemeDataOut();
 
@@ -95,7 +104,7 @@ internal class Work
             Directory.Delete(corePathOut, true);
         }
 
-        string[] exclude = { "dev.", ".git", "README.md" };
+        string[] exclude = P.Settings.SettingsList.ProductionBuildExcludeTriggers.Split(",");
 
         CopyFilesAndFolders(corePathIn, corePathOut, exclude);
     }
@@ -196,24 +205,35 @@ internal class Work
 
         for (int i = 0; i < lines.Count; i++)
         {
-            if (!ContainsAnyString(lines[i], excludeTriggers))
+            dynamic seachResult = ContainsAnyString(lines[i], excludeTriggers);
+            if (!seachResult.Result)
             {
                 result.Add(lines[i]);
+            }
+            else
+            {
+                if (!(lines[i].IndexOf(".git") != -1))
+                {
+                    string rule = seachResult.Trigger;
+                    P.Logger.Log($"Excluding [{lines[i]}] from pruduction becouse of rule [{rule}].", LogLevel.Information, 4);
+                }
             }
         }
 
         return result;
     }
 
-    public static bool ContainsAnyString(string input, string[] searchStrings)
+    public static object ContainsAnyString(string input, string[] searchStrings)
     {
         foreach (string searchString in searchStrings)
         {
             if (input.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) != -1)
-                return true; // Found a match
+            {
+                return new { Result = true, Trigger = searchString };
+            }
         }
 
-        return false; // No matches found
+        return new { Result = false, Triger = "" };
     }
 
     public static string Minify(string jsCode)
