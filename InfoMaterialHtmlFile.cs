@@ -1,5 +1,8 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Net;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using HtmlAgilityPack;
+using Microsoft.Ajax.Utilities;
 using Newtonsoft.Json;
 using RedsHTMLBuilder.Tools;
 
@@ -205,6 +208,8 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
         result.AppendChild(GetCompileNameValueNode("FooterHash", ThemesHashes.FooterHash));
         result.AppendChild(GetCompileNameValueNode("AdditionalMainDivContentHash", ThemesHashes.AdditionalMainDivContentHash));
 
+        result.AppendChild(HtmlNode.CreateNode("<br>"));
+
         return result;
     }
 
@@ -219,7 +224,7 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
 
     public InfoMaterialThemeHtmlFile() { }
 
-    public InfoMaterialThemeHtmlFile(List<string> styles, List<string> scripts, List<string> additionalHeadContent, string infoMaterialThemeConfigString, string htmlTextFormaterString, string globalHtmlTextFormaterString, string header, string footer, string additionalMainDivContent, int themeNumber) : base(styles, scripts, additionalHeadContent)
+    public InfoMaterialThemeHtmlFile(List<string> styles, List<string> scripts, List<string> additionalHeadContent, string infoMaterialThemeConfigString, string htmlTextFormaterString, string globalHtmlTextFormaterString, string header, string footer, string additionalMainDivContent, string codefilesFolderPath, int themeNumber) : base(styles, scripts, additionalHeadContent)
     {
         HtmlTextFormater = new HtmlTextFormater(JsonConvert.DeserializeObject<HtmlTextFormaterConfig>(htmlTextFormaterString));
         HtmlTextFormater.AppendConfig(JsonConvert.DeserializeObject<HtmlTextFormaterConfig>(globalHtmlTextFormaterString));
@@ -244,12 +249,12 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
         FooterNode = HtmlNode.CreateNode(footer);
 
         string other = Convert.ToString(themeNumber);
-        ThemesHashes = new ThemesHashes(styles, scripts, additionalHeadContent, infoMaterialThemeConfigString, htmlTextFormaterString, globalHtmlTextFormaterString, header, footer, additionalMainDivContent, P.ExecutableHashSHA256, other);
+        ThemesHashes = new ThemesHashes(styles, scripts, additionalHeadContent, infoMaterialThemeConfigString, htmlTextFormaterString, globalHtmlTextFormaterString, header, footer, additionalMainDivContent, P.ExecutableHashSHA256, other, codefilesFolderPath);
 
-        InfoMaterialThemeMainContentContainerNodes = GenerateInfoMaterialThemeMainContentContainerNodes(infoMaterialThemeConfig.InfoMaterialThemeMainContentContainerConfigs, infoMaterialThemeConfig.Title);
+        InfoMaterialThemeMainContentContainerNodes = GenerateInfoMaterialThemeMainContentContainerNodes(infoMaterialThemeConfig.InfoMaterialThemeMainContentContainerConfigs, codefilesFolderPath, infoMaterialThemeConfig.Title);
     }
 
-    private List<InfoMaterialThemeMainContentContainerNode> GenerateInfoMaterialThemeMainContentContainerNodes(List<InfoMaterialThemeMainContentContainerConfig> infoMaterialThemeMainContentContainerConfigs, string indicator)
+    private List<InfoMaterialThemeMainContentContainerNode> GenerateInfoMaterialThemeMainContentContainerNodes(List<InfoMaterialThemeMainContentContainerConfig> infoMaterialThemeMainContentContainerConfigs, string codefilesFolderPath, string indicator)
     {
         List<InfoMaterialThemeMainContentContainerNode> result = new List<InfoMaterialThemeMainContentContainerNode>();
 
@@ -260,7 +265,7 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
 
             InfoMaterialThemeMainContentContainerNode temp = new InfoMaterialThemeMainContentContainerNode(infoMaterialThemeMainContentContainerConfigs[i], HtmlTextFormater);
 
-            temp.CodeContainerNodes = GenerateCodeContainerNodes(infoMaterialThemeMainContentContainerConfigs[i].InfoMaterialThemeCodeAndExplanationContainerConfigs, $"[{indicator}] in [{infoMaterialThemeMainContentContainerConfigs[i].Header}]");
+            temp.CodeContainerNodes = GenerateCodeContainerNodes(infoMaterialThemeMainContentContainerConfigs[i].InfoMaterialThemeCodeAndExplanationContainerConfigs, codefilesFolderPath, $"[{indicator}] in [{infoMaterialThemeMainContentContainerConfigs[i].Header}]");
 
             result.Add(temp);
         }
@@ -268,21 +273,21 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
         return result;
     }
 
-    private List<InfoMaterialThemeCodeAndExplanationContainerNode> GenerateCodeContainerNodes(List<InfoMaterialThemeCodeAndExplanationContainerConfig> infoMaterialThemeCodeAndExplanationContainerConfigs, string indicator)
+    private List<InfoMaterialThemeCodeAndExplanationContainerNode> GenerateCodeContainerNodes(List<InfoMaterialThemeCodeAndExplanationContainerConfig> infoMaterialThemeCodeAndExplanationContainerConfigs, string codefilesFolderPath, string indicator)
     {
         List<InfoMaterialThemeCodeAndExplanationContainerNode> result = new List<InfoMaterialThemeCodeAndExplanationContainerNode>();
 
         for (int i = 0; i < infoMaterialThemeCodeAndExplanationContainerConfigs.Count; i++)
         {
             InfoMaterialThemeCodeAndExplanationContainerNode temp = new InfoMaterialThemeCodeAndExplanationContainerNode();
-            temp.Elems = GenerateElems(infoMaterialThemeCodeAndExplanationContainerConfigs[i].AdditionalContentElemConfigs, indicator);
+            temp.Elems = GenerateElems(infoMaterialThemeCodeAndExplanationContainerConfigs[i].AdditionalContentElemConfigs, codefilesFolderPath, indicator);
             result.Add(temp);
         }
 
         return result;
     }
 
-    private List<AdditionalContentElemNodeCore> GenerateElems(List<AdditionalContentElemConfig> additionalContentElemConfigs, string indicator)
+    private List<AdditionalContentElemNodeCore> GenerateElems(List<AdditionalContentElemConfig> additionalContentElemConfigs, string codefilesFolderPath, string indicator)
     {
         List<AdditionalContentElemNodeCore> result = new List<AdditionalContentElemNodeCore>();
 
@@ -297,12 +302,10 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
             {
                 result.Add(new AdditionalContentTextNode(additionalContentElemConfigs[i].Text, additionalContentElemConfigs[i].Format, HtmlTextFormater));
             }
-            else if (additionalContentElemConfigs[i].Code.Length > 0)
+            else if (additionalContentElemConfigs[i].Code.Length > 0 || additionalContentElemConfigs[i].CodeFile.Length > 0)
             {
                 codeCount++;
-                result.Add(new AdditionalContentCodeNode(additionalContentElemConfigs[i].Code, additionalContentElemConfigs[i].CodeTitle, additionalContentElemConfigs[i].LanguageClass, $"In [{indicator}], totalCount=[{totalCount}], codeCount=[{codeCount}]"));
-
-
+                result.Add(new AdditionalContentCodeNode(additionalContentElemConfigs[i].Code, additionalContentElemConfigs[i].CodeFile, codefilesFolderPath, additionalContentElemConfigs[i].CodeTitle, additionalContentElemConfigs[i].LanguageClass, $"In [{indicator}], totalCount=[{totalCount}], codeCount=[{codeCount}]"));
             }
             else if (additionalContentElemConfigs[i].Src.Length > 0)
             {
@@ -440,6 +443,8 @@ public class AdditionalContentTextNode : AdditionalContentElemNodeCore
 }
 public class AdditionalContentCodeNode : AdditionalContentElemNodeCore
 {
+    public bool IsCodeSetFromFile = false;
+
     public string Code { get; set; }
     public string CodeTitle { get; set; }
     public string LanguageClass { get; set; }
@@ -477,9 +482,22 @@ public class AdditionalContentCodeNode : AdditionalContentElemNodeCore
         }
     }
 
-    public AdditionalContentCodeNode(string code, string codeTitle, string languageClass, string pathFindersIndicator)
+    public AdditionalContentCodeNode(string code, string codeFile, string codefilesFolderPath, string codeTitle, string languageClass, string pathFindersIndicator)
     {
-        Code = code;
+        if (code.Length == 0 && codeFile.Length > 0)
+        {
+            string codeFileContent = File.ReadAllTextAsync(Path.Combine(codefilesFolderPath, codeFile)).Result;
+
+            string processedCode = WebUtility.HtmlEncode(codeFileContent);
+
+            Code = processedCode;
+
+            IsCodeSetFromFile = true;
+        }
+        else
+        {
+            Code = code;
+        }
         CodeTitle = codeTitle;
         LanguageClass = languageClass;
         PathFindersIndicator = pathFindersIndicator;
@@ -683,6 +701,7 @@ public class AdditionalContentElemConfig
     public string Text { get; set; } = "";
     public string Code { get; set; } = "";
     public string CodeTitle { get; set; } = "";
+    public string CodeFile { get; set; } = "";
     public string Src { get; set; } = "";
     public string OtherHtml { get; set; } = "";
     public string LanguageClass { get; set; }
@@ -734,10 +753,11 @@ public class WhomeComparer : IComparer<Whome>
     }
 }
 
-public class CourseWhome{
-    public string CourseTitle {get; set;} = String.Empty;
+public class CourseWhome
+{
+    public string CourseTitle { get; set; } = String.Empty;
 
-    public List<Whome> Whomes {get; set; } = new List<Whome>();
+    public List<Whome> Whomes { get; set; } = new List<Whome>();
 
     internal void Sort()
     {
@@ -758,11 +778,13 @@ public class ThemesHashes
     public string FooterHash = String.Empty;
     public string AdditionalMainDivContentHash = String.Empty;
 
+    public string CodefilesHash = "none";
+
     public string OtherHash = String.Empty;
 
     public string ExecutableHashSHA256 = String.Empty;
 
-    public ThemesHashes(List<string> styles, List<string> scripts, List<string> additionalHeadContent, string infoMaterialThemeConfigString, string htmlTextFormaterString, string globalHtmlTextFormaterString, string header, string footer, string additionalMainDivContent, string executableHashSHA256, string other)
+    public ThemesHashes(List<string> styles, List<string> scripts, List<string> additionalHeadContent, string infoMaterialThemeConfigString, string htmlTextFormaterString, string globalHtmlTextFormaterString, string header, string footer, string additionalMainDivContent, string executableHashSHA256, string other, string codefilesFolderPath)
     {
         StylesHash = Hash.GetStringSHA256(String.Join(String.Empty, styles.ToArray()));
         ScriptsHash = Hash.GetStringSHA256(String.Join(String.Empty, scripts.ToArray()));
@@ -774,6 +796,29 @@ public class ThemesHashes
         HeaderHash = Hash.GetStringSHA256(header);
         FooterHash = Hash.GetStringSHA256(footer);
         AdditionalMainDivContentHash = Hash.GetStringSHA256(additionalMainDivContent);
+
+        if (Directory.Exists(codefilesFolderPath))
+        {
+            List<string> codefiles = Directory.GetFiles(codefilesFolderPath).ToList();
+
+            if (codefiles.Count > 0)
+            {
+                codefiles.Sort();
+
+                string codeFilesBlob = String.Empty;
+                foreach (var file in codefiles)
+                {
+                    string fileName = Path.GetFileName(file);
+                    string fileContent = File.ReadAllText(file);
+
+                    string fileData = fileName + fileContent;
+
+                    codeFilesBlob += fileData;
+                }
+
+                CodefilesHash = Hash.GetStringSHA256(codeFilesBlob);
+            }
+        }
 
         OtherHash = Hash.GetStringSHA256(other);
 
@@ -803,6 +848,7 @@ public class ThemesHashes
                obj1.HeaderHash == obj2.HeaderHash &&
                obj1.FooterHash == obj2.FooterHash &&
                obj1.ExecutableHashSHA256 == obj2.ExecutableHashSHA256 &&
+               obj1.CodefilesHash == obj2.CodefilesHash &&
                obj1.OtherHash == obj2.OtherHash &&
                obj1.AdditionalMainDivContentHash == obj2.AdditionalMainDivContentHash;
     }

@@ -395,7 +395,7 @@ internal class Work
         return int.MaxValue; // If there's no number, place it at the end
     }
 
-    public static InfoMaterialThemeHtmlFile LoadInfoMaterialThemeHtmlFile(string configPath, string textFormaterPath, string globalTextFormaterPath, string stylesPath, string scriptsPath, string additionalHeadContentPath, string headerPath, string footerPath, string additionalMainDivContentPath, int themeNumber)
+    public static InfoMaterialThemeHtmlFile LoadInfoMaterialThemeHtmlFile(string configPath, string textFormaterPath, string globalTextFormaterPath, string stylesPath, string scriptsPath, string additionalHeadContentPath, string headerPath, string footerPath, string additionalMainDivContentPath, string codefilesFolderPath, int themeNumber)
     {
         string infoMaterialThemeConfig = File.ReadAllText(configPath);
 
@@ -411,7 +411,7 @@ internal class Work
 
         string additionalMainDivContent = File.ReadAllText(additionalMainDivContentPath);
 
-        return new InfoMaterialThemeHtmlFile(styles, scripts, additionalHeadContent, infoMaterialThemeConfig, TextFormater, GlobalTextFormater, header, footer, additionalMainDivContent, themeNumber);
+        return new InfoMaterialThemeHtmlFile(styles, scripts, additionalHeadContent, infoMaterialThemeConfig, TextFormater, GlobalTextFormater, header, footer, additionalMainDivContent, codefilesFolderPath, themeNumber);
     }
 
     public static Whome CheckedDirAndLoadInfoMaterialThemesIfPresent(string coreDir)
@@ -460,9 +460,9 @@ internal class Work
                 themePath = Path.Join(themePath, themeFolderName);
                 themeNumber = RemoveNonNumericCharactersAndReturnNumberOrZero(themeFolderName);
 
-                infoMaterialThemeHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialThemeConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
-                infoMaterialTaskHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialTaskConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
-                infoMaterialResultHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialResultConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, themeNumber);
+                infoMaterialThemeHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialThemeConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, infoMaterialThemeProjectDirs.CodefilesFolderPath, themeNumber);
+                infoMaterialTaskHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialTaskConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, infoMaterialThemeProjectDirs.CodefilesFolderPath, themeNumber);
+                infoMaterialResultHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialResultConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, infoMaterialThemeProjectDirs.CodefilesFolderPath, themeNumber);
 
                 infoMaterialResultHtmlFile.MainContainerIsEncrypted = true;
 
@@ -634,6 +634,7 @@ internal class Work
         public string AdditionalHeadContent { get; set; }
         public string AdditionalMainDivContent { get; set; }
 
+        public string CodefilesFolderPath { get; set; }
 
         public string Header { get; set; }
         public string Footer { get; set; }
@@ -653,6 +654,8 @@ internal class Work
 
             AdditionalHeadContent = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.AdditionalHeadContent));
             AdditionalMainDivContent = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.AdditionalMainDivContent));
+
+            CodefilesFolderPath = Path.Combine(corePath, "codefiles");
 
             Header = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.HeaderElement));
             Footer = IfPathExistReturnPathElseNull(Path.Combine(corePath, P.Settings.SettingsList.FooterElement));
