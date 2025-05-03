@@ -60,7 +60,7 @@ internal class Initalization
     {
         string currentPath = Environment.CurrentDirectory;
 
-        currentPath = PersonalInit.GetPersonalDevPath(); //DEV
+        //currentPath = PersonalInit.GetPersonalDevPath(); //DEV
 
         P.PathDirs.SetFromExecutionPath(currentPath, P.PathNames);
         Dir.CreateAllDirsInObject(P.PathDirs);
