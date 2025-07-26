@@ -5,6 +5,7 @@ using HtmlAgilityPack;
 using Microsoft.Ajax.Utilities;
 using Newtonsoft.Json;
 using RedsHTMLBuilder.Tools;
+using RedsNodeTree;
 
 public class HtmlFile
 {
@@ -201,6 +202,10 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
 
         result.AppendChild(HtmlNode.CreateNode("<br>"));
 
+        result.AppendChild(GetCompileNameValueNode("CodefilesHash", ThemesHashes.CodefilesHash));
+
+        result.AppendChild(HtmlNode.CreateNode("<br>"));
+
         result.AppendChild(GetCompileNameValueNode("InfoMaterialThemeConfigStringHash", ThemesHashes.InfoMaterialThemeConfigStringHash));
         result.AppendChild(GetCompileNameValueNode("HtmlTextFormaterStringHash", ThemesHashes.HtmlTextFormaterStringHash));
         result.AppendChild(GetCompileNameValueNode("GlobalHtmlTextFormaterStringHash", ThemesHashes.GlobalHtmlTextFormaterStringHash));
@@ -300,12 +305,16 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
 
             if (additionalContentElemConfigs[i].Text.Length > 0)
             {
-                result.Add(new AdditionalContentTextNode(additionalContentElemConfigs[i].Text, additionalContentElemConfigs[i].Format, HtmlTextFormater));
+                result.Add(new AdditionalContentTextNode(additionalContentElemConfigs[i].Text, additionalContentElemConfigs[i].Type, additionalContentElemConfigs[i].Format, HtmlTextFormater));
             }
             else if (additionalContentElemConfigs[i].Code.Length > 0 || additionalContentElemConfigs[i].CodeFile.Length > 0)
             {
                 codeCount++;
                 result.Add(new AdditionalContentCodeNode(additionalContentElemConfigs[i].Code, additionalContentElemConfigs[i].CodeFile, codefilesFolderPath, additionalContentElemConfigs[i].CodeTitle, additionalContentElemConfigs[i].LanguageClass, $"In [{indicator}], totalCount=[{totalCount}], codeCount=[{codeCount}]"));
+            }
+            else if (additionalContentElemConfigs[i].Tree != null)
+            {
+                result.Add(new AdditionalContentTreeNode(additionalContentElemConfigs[i].Tree, additionalContentElemConfigs[i].TreeTitle));
             }
             else if (additionalContentElemConfigs[i].Src.Length > 0)
             {
@@ -419,25 +428,38 @@ public class AdditionalContentTextNode : AdditionalContentElemNodeCore
 {
     public string Text { get; set; }
     public bool Format { get; set; } = true;
+    public string? Type { get; set; } = null;
+
     public HtmlTextFormater HtmlTextFormater { get; set; }
 
-    public AdditionalContentTextNode(string text, bool format, HtmlTextFormater htmlTextFormater)
+    public AdditionalContentTextNode(string text, string type, bool format, HtmlTextFormater htmlTextFormater)
     {
         Text = text;
         Format = format;
+        Type = type.ToLower();
 
         HtmlTextFormater = htmlTextFormater;
     }
 
     public override void Compile()
     {
+        string additionalClassString = "";
+
+        if (Type != null)
+        {
+            if (Type == "title")
+            {
+                additionalClassString += " theme-text-container-title";
+            }
+        }
+
         if (Format)
         {
-            Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>{HtmlTextFormater.Format(Text)}</p>");
+            Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment{additionalClassString}'>{HtmlTextFormater.Format(Text)}</p>");
         }
         else
         {
-            Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>{Text}</p>");
+            Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment{additionalClassString}'>{Text}</p>");
         }
     }
 }
@@ -554,13 +576,45 @@ public class AdditionalContentVideoNode : AdditionalContentElemNodeCore
         Core = otherHtmlContainerNode;
     }
 }
+public class AdditionalContentTreeNode : AdditionalContentElemNodeCore
+{
+    public TreeNode Node { get; set; }
+    public string? TreeTitle { get; set; } = null;
+
+    public AdditionalContentTreeNode(TreeNode node, string treeTitle)
+    {
+        Node = node;
+        TreeTitle = treeTitle;
+    }
+
+    public override void Compile()
+    {
+        NodeTreeGenerator generator = new NodeTreeGenerator();
+
+        string tree = generator.WriteNodeHTML(Node, "");
+
+        Console.WriteLine(tree.Replace("<br>", "\n").Replace("&nbsp;", " "));
+        // Console.ReadLine();
+
+        HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode($"<div class='theme-tree-container'>{tree}</div>");
+        Core = otherHtmlContainerNode;
+    }
+}
+
 public class AdditionalContentOtherHtmlNode : AdditionalContentElemNodeCore
 {
     public string Html { get; set; }
 
     public AdditionalContentOtherHtmlNode(string html)
     {
-        Html = html;
+        if (html.ToLower() == "line")
+        {
+            Html = "<hr class='theme-line'>";
+        }
+        else
+        {
+            Html = html;
+        }
     }
 
     public override void Compile()
@@ -699,9 +753,12 @@ public class InfoMaterialThemeCodeAndExplanationContainerConfig
 public class AdditionalContentElemConfig
 {
     public string Text { get; set; } = "";
+    public string Type { get; set; } = "";
     public string Code { get; set; } = "";
     public string CodeTitle { get; set; } = "";
     public string CodeFile { get; set; } = "";
+    public string TreeTitle { get; set; } = "";
+    public TreeNode? Tree { get; set; } = null;
     public string Src { get; set; } = "";
     public string OtherHtml { get; set; } = "";
     public string LanguageClass { get; set; }
