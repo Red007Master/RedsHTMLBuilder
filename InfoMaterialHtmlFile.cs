@@ -771,7 +771,7 @@ public class DownloadNode : AdditionalContentElemNodeCore
             }
         }
 
-        Core = HtmlNode.CreateNode($"<a class=`download-link` href='{Download}' download>{name}</a>");
+        Core = HtmlNode.CreateNode($"<a class='download-link' href='{Download}' download>{name}</a>");
     }
 }
 public class AdditionalContentOtherHtmlNode : AdditionalContentElemNodeCore
