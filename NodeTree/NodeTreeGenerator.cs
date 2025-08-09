@@ -41,7 +41,7 @@ public class NodeTreeGenerator
         }
         else
         {
-            outputString += node.Title + indent + "(" + node.Comment + ")<br>";
+            outputString += node.Title + " " + "(" + node.Comment + ")<br>";
         }
 
         // Loop through the children recursively, passing in the

@@ -303,33 +303,38 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
         {
             totalCount++;
 
-            if (additionalContentElemConfigs[i].Text.Length > 0)
-            {
-                result.Add(new AdditionalContentTextNode(additionalContentElemConfigs[i].Text, additionalContentElemConfigs[i].Type, additionalContentElemConfigs[i].Format, HtmlTextFormater));
-            }
-            else if (additionalContentElemConfigs[i].Code.Length > 0 || additionalContentElemConfigs[i].CodeFile.Length > 0)
+            if (additionalContentElemConfigs[i].Code != null && additionalContentElemConfigs[i].Code.Length > 0 || additionalContentElemConfigs[i].CodeFile.Length > 0)
             {
                 codeCount++;
-                result.Add(new AdditionalContentCodeNode(additionalContentElemConfigs[i].Code, additionalContentElemConfigs[i].CodeFile, codefilesFolderPath, additionalContentElemConfigs[i].CodeTitle, additionalContentElemConfigs[i].LanguageClass, $"In [{indicator}], totalCount=[{totalCount}], codeCount=[{codeCount}]"));
+                result.Add(new AdditionalContentCodeNode(additionalContentElemConfigs[i].Code, additionalContentElemConfigs[i].CodeFile, codefilesFolderPath, additionalContentElemConfigs[i].Text, additionalContentElemConfigs[i].LanguageClass, $"In [{indicator}], totalCount=[{totalCount}], codeCount=[{codeCount}]"));
             }
             else if (additionalContentElemConfigs[i].Tree != null)
             {
-                result.Add(new AdditionalContentTreeNode(additionalContentElemConfigs[i].Tree, additionalContentElemConfigs[i].TreeTitle));
+                result.Add(new AdditionalContentTreeNode(additionalContentElemConfigs[i].Tree, additionalContentElemConfigs[i].Text));
             }
             else if (additionalContentElemConfigs[i].Src.Length > 0)
             {
                 if (additionalContentElemConfigs[i].Src.EndsWith(".mp4") || additionalContentElemConfigs[i].Src.EndsWith(".mkv"))
                 {
-                    result.Add(new AdditionalContentVideoNode(additionalContentElemConfigs[i].Src));
+                    result.Add(new AdditionalContentVideoNode(additionalContentElemConfigs[i].Src, additionalContentElemConfigs[i].Text));
                 }
                 else
                 {
-                    result.Add(new AdditionalContentImgNode(additionalContentElemConfigs[i].Src));
+                    result.Add(new AdditionalContentImgNode(additionalContentElemConfigs[i].Src, additionalContentElemConfigs[i].Text));
                 }
             }
             else if (additionalContentElemConfigs[i].OtherHtml.Length > 0)
             {
                 result.Add(new AdditionalContentOtherHtmlNode(additionalContentElemConfigs[i].OtherHtml));
+            }
+            else if (additionalContentElemConfigs[i].List != null && additionalContentElemConfigs[i].List.Count > 0)
+            {
+                result.Add(new AdditionalContentListNode(additionalContentElemConfigs[i].List, additionalContentElemConfigs[i].Numeration, HtmlTextFormater));
+
+            }
+            else if (additionalContentElemConfigs[i].Text.Length > 0)
+            {
+                result.Add(new AdditionalContentTextNode(additionalContentElemConfigs[i].Text, additionalContentElemConfigs[i].Type, additionalContentElemConfigs[i].Format, HtmlTextFormater));
             }
         }
 
@@ -451,6 +456,11 @@ public class AdditionalContentTextNode : AdditionalContentElemNodeCore
             {
                 additionalClassString += " theme-text-container-title";
             }
+
+            if (Type == "bold"){
+                Text = "<strong>" + Text + "</strong>";
+            }
+
         }
 
         if (Format)
@@ -475,7 +485,7 @@ public class AdditionalContentCodeNode : AdditionalContentElemNodeCore
 
     public void TryCodeCompile(string code, string languageClass, string pathFindersIndicator)
     {
-        if (P.ComplieCSharpCode && languageClass == "language-cs" || languageClass == "language-csharp")
+        if (P.ComplieCSharpCode && (languageClass == "language-cs" || languageClass == "language-csharp"))
         {
             string codeToWorkWith = System.Net.WebUtility.HtmlDecode(code);
             string mainMethodError = "Program does not contain a static 'Main' method suitable for an entry point".ToLower();
@@ -547,32 +557,60 @@ public class AdditionalContentCodeNode : AdditionalContentElemNodeCore
 public class AdditionalContentImgNode : AdditionalContentElemNodeCore
 {
     public string Src { get; set; }
+    public string Title { get; set; }
 
-    public AdditionalContentImgNode(string src)
+    public AdditionalContentImgNode(string src, string title)
     {
         Src = src;
+        Title = title;
     }
 
     public override void Compile()
     {
+        // HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode("<div class='theme-additional-html-content-container'></div>");
+        // otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<img src='{Src}' class='theme-additional-img' alt=''>"));
+        // Core = otherHtmlContainerNode;
+
         HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode("<div class='theme-additional-html-content-container'></div>");
-        otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<img src='{Src}' class='theme-additional-img' alt=''>"));
+
+        if (Title == "")
+        {
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<img src='{Src}' class='theme-additional-img' alt=''>"));
+        }
+        else
+        {
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<p class='code-pre-title'>{Title}</p>"));
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<img src='{Src}' class='theme-additional-img' alt=''>"));
+        }
+
         Core = otherHtmlContainerNode;
     }
 }
 public class AdditionalContentVideoNode : AdditionalContentElemNodeCore
 {
     public string Src { get; set; }
+    public string Title { get; set; }
 
-    public AdditionalContentVideoNode(string src)
+    public AdditionalContentVideoNode(string src, string title)
     {
         Src = src;
+        Title = title;
     }
 
     public override void Compile()
     {
         HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode("<div class='theme-additional-html-content-container'></div>");
-        otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' controls><source src='{Src}'></video>"));
+
+        if (Title == "")
+        {
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' controls><source src='{Src}'></video>"));
+        }
+        else
+        {
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<p class='code-pre-title'>{Title}</p>"));
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' controls><source src='{Src}'></video>"));
+        }
+
         Core = otherHtmlContainerNode;
     }
 }
@@ -593,14 +631,103 @@ public class AdditionalContentTreeNode : AdditionalContentElemNodeCore
 
         string tree = generator.WriteNodeHTML(Node, "");
 
-        Console.WriteLine(tree.Replace("<br>", "\n").Replace("&nbsp;", " "));
+        // Console.WriteLine(tree.Replace("<br>", "\n").Replace("&nbsp;", " "));
         // Console.ReadLine();
 
-        HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode($"<div class='theme-tree-container'>{tree}</div>");
-        Core = otherHtmlContainerNode;
+        // HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode($"<div><p class='code-pre-title'>{TreeTitle}:</p><div class='theme-tree-container'>{tree}</div></div>");
+
+        if (TreeTitle == "")
+        {
+            Core = HtmlNode.CreateNode($"<div class='code-pre-container'><div class='theme-tree-container'>{tree}</div></div>");
+        }
+        else
+        {
+            Core = HtmlNode.CreateNode($"<div class='code-pre-container'><p class='code-pre-title'>{TreeTitle}:</p><div class='theme-tree-container'>{tree}</div></div>");
+        }
+
+        // Core = otherHtmlContainerNode;
     }
 }
+public class AdditionalContentListNode : AdditionalContentElemNodeCore
+{
+    public List<ListItem> List { get; }
+    public string Numeration { get; }
 
+    public HtmlTextFormater HtmlTextFormater { get; set; }
+
+    public AdditionalContentListNode(List<ListItem> list, string numeration, HtmlTextFormater htmlTextFormater)
+    {
+        List = list;
+        Numeration = numeration;
+        HtmlTextFormater = htmlTextFormater;
+    }
+
+    public override void Compile()
+    {
+        // string additionalClassString = "";
+
+        int numMaxLenght = 0;
+        bool allNumbers = true;
+
+        for (int i = 0; i < List.Count; i++)
+        {
+            if (List[i].Num != null && List[i].Num.Length > 0 && int.TryParse(List[i].Num, out int numAsInt))
+            {
+                if (numMaxLenght < List[i].Num.Length)
+                {
+                    numMaxLenght = List[i].Num.Length;
+                }
+            }
+            else
+            {
+                allNumbers = false;
+            }
+        }
+
+        HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode("<div class='theme-additional-html-content-container'></div>");
+        for (int i = 0; i < List.Count; i++)
+        {
+            string numText;
+
+            if (allNumbers)
+            {
+                numText = new String('0', numMaxLenght - List[i].Num.Length) + List[i].Num;
+            }
+            else
+            {
+                numText = List[i].Num;
+            }
+
+            HtmlNode listItem;
+
+            if (numMaxLenght <= 0)
+            {
+                numText = "*";
+            }
+
+            if (List[i].Format)
+            {
+                listItem = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>[{numText}] {HtmlTextFormater.Format(List[i].Text)}</p>");
+            }
+            else{
+                listItem = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>[{numText}] {List[i].Text}</p>");
+            }
+
+            otherHtmlContainerNode.AppendChild(listItem);
+        }
+
+        Core = otherHtmlContainerNode;
+
+        // if (Format)
+        // {
+        // Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment{additionalClassString}'>{HtmlTextFormater.Format(Text)}</p>");
+        // }
+        // else
+        // {
+        //     Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment{additionalClassString}'>{Text}</p>");
+        // }
+    }
+}
 public class AdditionalContentOtherHtmlNode : AdditionalContentElemNodeCore
 {
     public string Html { get; set; }
@@ -755,14 +882,15 @@ public class AdditionalContentElemConfig
     public string Text { get; set; } = "";
     public string Type { get; set; } = "";
     public string Code { get; set; } = "";
-    public string CodeTitle { get; set; } = "";
     public string CodeFile { get; set; } = "";
-    public string TreeTitle { get; set; } = "";
     public TreeNode? Tree { get; set; } = null;
     public string Src { get; set; } = "";
     public string OtherHtml { get; set; } = "";
     public string LanguageClass { get; set; }
     public bool Format { get; set; } = true;
+
+    public string Numeration { get; set; } = "";
+    public List<ListItem> List { get; set; } = null;
 
     public AdditionalContentElemConfig()
     {
@@ -772,12 +900,19 @@ public class AdditionalContentElemConfig
     {
         Text = text;
     }
-    public AdditionalContentElemConfig(string code, string codeTitle, string languageClass)
+    public AdditionalContentElemConfig(string code, string text, string languageClass)
     {
         Code = code;
-        CodeTitle = codeTitle;
+        Text = text;
         LanguageClass = languageClass;
     }
+}
+
+public class ListItem
+{
+    public bool Format { get; set; } = true;
+    public string Num { get; set; } = "";
+    public string Text { get; set; } = "";
 }
 
 public class Whome
