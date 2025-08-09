@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Data;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
@@ -330,7 +331,10 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
             else if (additionalContentElemConfigs[i].List != null && additionalContentElemConfigs[i].List.Count > 0)
             {
                 result.Add(new AdditionalContentListNode(additionalContentElemConfigs[i].List, additionalContentElemConfigs[i].Numeration, HtmlTextFormater));
-
+            }
+            else if (additionalContentElemConfigs[i].Download.Length > 0)
+            {
+                result.Add(new DownloadNode(additionalContentElemConfigs[i].Download, additionalContentElemConfigs[i].Text));
             }
             else if (additionalContentElemConfigs[i].Text.Length > 0)
             {
@@ -457,7 +461,8 @@ public class AdditionalContentTextNode : AdditionalContentElemNodeCore
                 additionalClassString += " theme-text-container-title";
             }
 
-            if (Type == "bold"){
+            if (Type == "bold")
+            {
                 Text = "<strong>" + Text + "</strong>";
             }
 
@@ -709,7 +714,8 @@ public class AdditionalContentListNode : AdditionalContentElemNodeCore
             {
                 listItem = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>[{numText}] {HtmlTextFormater.Format(List[i].Text)}</p>");
             }
-            else{
+            else
+            {
                 listItem = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>[{numText}] {List[i].Text}</p>");
             }
 
@@ -726,6 +732,46 @@ public class AdditionalContentListNode : AdditionalContentElemNodeCore
         // {
         //     Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment{additionalClassString}'>{Text}</p>");
         // }
+    }
+}
+
+public class DownloadNode : AdditionalContentElemNodeCore
+{
+    public string Text { get; set; }
+    public string Download { get; set; }
+
+    public DownloadNode(string download, string text)
+    {
+        Download = download;
+        Text = text;
+    }
+
+
+    public override void Compile()
+    {
+        string name;
+
+        if (Text.Length > 0)
+        {
+            name = Text;
+        }
+        else
+        {
+            bool left = Download.Contains("/");
+
+            if (left)
+            {
+                string[] parts = Download.Split('/');
+                name = parts[parts.Length - 1];
+            }
+            else
+            {
+                string[] parts = Download.Split('\\');
+                name = parts[parts.Length - 1];
+            }
+        }
+
+        Core = HtmlNode.CreateNode($"<a class=`download-link` href='{Download}' download>{name}</a>");
     }
 }
 public class AdditionalContentOtherHtmlNode : AdditionalContentElemNodeCore
@@ -888,7 +934,7 @@ public class AdditionalContentElemConfig
     public string OtherHtml { get; set; } = "";
     public string LanguageClass { get; set; }
     public bool Format { get; set; } = true;
-
+    public string Download { get; set; } = "";
     public string Numeration { get; set; } = "";
     public List<ListItem> List { get; set; } = null;
 
