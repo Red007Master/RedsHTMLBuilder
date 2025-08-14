@@ -336,6 +336,10 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
             {
                 result.Add(new DownloadNode(additionalContentElemConfigs[i].Download, additionalContentElemConfigs[i].Text));
             }
+            else if (additionalContentElemConfigs[i].TextArray.Length > 0)
+            {
+                result.Add(new AdditionalContentTextArrayNode(additionalContentElemConfigs[i].TextArray, additionalContentElemConfigs[i].Format, HtmlTextFormater));
+            }
             else if (additionalContentElemConfigs[i].Text.Length > 0)
             {
                 result.Add(new AdditionalContentTextNode(additionalContentElemConfigs[i].Text, additionalContentElemConfigs[i].Type, additionalContentElemConfigs[i].Format, HtmlTextFormater));
@@ -475,6 +479,35 @@ public class AdditionalContentTextNode : AdditionalContentElemNodeCore
         else
         {
             Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment{additionalClassString}'>{Text}</p>");
+        }
+    }
+}
+public class AdditionalContentTextArrayNode : AdditionalContentElemNodeCore
+{
+    public string[] TextArray { get; set; }
+    public bool Format { get; set; } = true;
+
+    public HtmlTextFormater HtmlTextFormater { get; set; }
+
+    public AdditionalContentTextArrayNode(string[] textArray, bool format, HtmlTextFormater htmlTextFormater)
+    {
+        TextArray = textArray;
+        Format = format;
+
+        HtmlTextFormater = htmlTextFormater;
+    }
+
+    public override void Compile()
+    {
+        string finalTextString = string.Join("<br>", TextArray);
+
+        if (Format)
+        {
+            Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>{HtmlTextFormater.Format(finalTextString)}</p>");
+        }
+        else
+        {
+            Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>{finalTextString}</p>");
         }
     }
 }
@@ -928,6 +961,7 @@ public class InfoMaterialThemeCodeAndExplanationContainerConfig
 public class AdditionalContentElemConfig
 {
     public string Text { get; set; } = "";
+    public string[] TextArray { get; set; } = [];
     public string Type { get; set; } = "";
     public string Code { get; set; } = "";
     public string CodeFile { get; set; } = "";
