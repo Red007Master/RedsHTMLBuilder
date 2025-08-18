@@ -745,11 +745,11 @@ public class AdditionalContentListNode : AdditionalContentElemNodeCore
 
             if (List[i].Format)
             {
-                listItem = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>[{numText}] {HtmlTextFormater.Format(List[i].Text)}</p>");
+                listItem = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>[{HtmlTextFormater.ForceFormatHighlight(numText)}] {HtmlTextFormater.Format(List[i].Text)}</p>");
             }
             else
             {
-                listItem = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>[{numText}] {List[i].Text}</p>");
+                listItem = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>[{HtmlTextFormater.ForceFormatHighlight(numText)}] {List[i].Text}</p>");
             }
 
             otherHtmlContainerNode.AppendChild(listItem);

@@ -13,6 +13,7 @@ public class HtmlTextFormater
         if (input == null)
         {
             P.Logger.Log("input == null, digly digly hole", LogLevel.FatalError);
+            throw new ArgumentNullException(nameof(input));
         }
 
         {
@@ -258,6 +259,11 @@ public class HtmlTextFormater
     public void AppendConfig(HtmlTextFormaterConfig htmlTextFormaterConfig)
     {
         HtmlTextFormaterConfig.MargeWith(htmlTextFormaterConfig);
+    }
+
+    public object ForceFormatHighlight(string numText)
+    {
+        return CreateOpenSpan(HtmlTextFormaterConfig.CSSClassHighlight) + numText + "</span>";
     }
 
     public HtmlTextFormater()
