@@ -499,6 +499,8 @@ public class AdditionalContentTextArrayNode : AdditionalContentElemNodeCore
     {
         Core = HtmlNode.CreateNode("<div class='text-background'></div>");
 
+        bool lastNodeIsCode = false;
+
         for (int i = 0; i < TextArray.Length; i++)
         {
             if (TextArray[i].StartsWith("*code:language-"))
@@ -510,10 +512,19 @@ public class AdditionalContentTextArrayNode : AdditionalContentElemNodeCore
 
                 string code = TextArray[i].Substring(secondStar + 1);
 
-                AdditionalContentCodeNode codeNode = new AdditionalContentCodeNode(code, "", "", "", languageClass, "");
-                codeNode.Compile();
+                if (lastNodeIsCode && languageClass == "language-connect")
+                {
+                    Core.ChildNodes[Core.ChildNodes.Count -1].ChildNodes[0].InnerHtml += "\n" + code;
+                }
+                else
+                {
+                    AdditionalContentCodeNode codeNode = new AdditionalContentCodeNode(code, "", "", "", languageClass, "");
+                    codeNode.Compile();
 
-                Core.AppendChild(codeNode.Core.ChildNodes[0]);
+                    Core.AppendChild(codeNode.Core.ChildNodes[0]);
+                }
+
+                lastNodeIsCode = true;
             }
             else
             {
@@ -525,6 +536,8 @@ public class AdditionalContentTextArrayNode : AdditionalContentElemNodeCore
                 {
                     Core.AppendChild(HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment no-background text-array-line'>{TextArray[i]}</p>"));
                 }
+
+                lastNodeIsCode = false;
             }
         }
     }
