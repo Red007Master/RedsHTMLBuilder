@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 using Microsoft.Ajax.Utilities;
@@ -499,16 +500,105 @@ public class AdditionalContentTextArrayNode : AdditionalContentElemNodeCore
 
     public override void Compile()
     {
-        string finalTextString = string.Join("<br>", TextArray);
+        // List<string[]> codeKeyPair = new List<string[]>();
+        // for (int i = 0; i < TextArray.Length; i++)
+        // {
+        //     if (TextArray[i].StartsWith("*code:language-"))
+        //     {
+        //         string languageClass = GetSubstringUntil(TextArray[i], "*").Replace("*", "");
 
-        if (Format)
+        //         int firstStar = TextArray[i].IndexOf('*');
+        //         int secondStar = TextArray[i].IndexOf('*', firstStar + 2);
+
+        //         string code = TextArray[i].Substring(secondStar+1);
+
+        //         string[] keypPair = new string[2];
+
+        //         keypPair[0] = GenerateRandomString(40);
+
+        //         AdditionalContentCodeNode codeNode = new AdditionalContentCodeNode(code, "", "", "", languageClass, "");
+
+        //         codeNode.Compile();
+
+        //         keypPair[1] = codeNode.Core.InnerHtml;
+        //         // Console.WriteLine(codeNode.Core.InnerHtml);
+        //         // Console.ReadLine();
+
+        //         TextArray[i] = keypPair[0];
+
+        //         codeKeyPair.Add(keypPair);
+        //     }
+        // }
+
+        // string finalTextString = string.Join("<br>", TextArray);
+
+        // if (codeKeyPair.Count > 0)
+        // {
+        //     for (int i = 0; i < codeKeyPair.Count; i++)
+        //     {
+        //         finalTextString = finalTextString.Replace(codeKeyPair[i][0], codeKeyPair[i][1]);
+        //     }
+        // }
+
+        // if (Format)
+        // {
+        //     string fin = $"<p class='theme-text-container theme-text-container-code-comment'>{HtmlTextFormater.Format(finalTextString)}</p>";
+        //     Console.WriteLine(fin);
+        //     Console.ReadLine();
+        //     Core = HtmlNode.CreateNode(fin);
+        // }
+        // else
+        // {
+        //     Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>{finalTextString}</p>");
+        // }
+
+        Core = HtmlNode.CreateNode("<div class='text-background'></div>");
+
+        for (int i = 0; i < TextArray.Length; i++)
         {
-            Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>{HtmlTextFormater.Format(finalTextString)}</p>");
+            if (TextArray[i].StartsWith("*code:language-"))
+            {
+                string languageClass = GetSubstringUntil(TextArray[i].Remove(0, 1), "*").Replace("*", "").Split(":")[1];
+
+                int firstStar = TextArray[i].IndexOf('*');
+                int secondStar = TextArray[i].IndexOf('*', firstStar + 2);
+
+                string code = TextArray[i].Substring(secondStar + 1);
+
+                AdditionalContentCodeNode codeNode = new AdditionalContentCodeNode(code, "", "", "", languageClass, "");
+                codeNode.Compile();
+
+                Core.AppendChild(codeNode.Core.ChildNodes[0]);
+            }
+            else
+            {
+                if (Format)
+                {
+                    Core.AppendChild(HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment no-background'>{HtmlTextFormater.Format(TextArray[i])}</p>"));
+                }
+                else
+                {
+                    Core.AppendChild(HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment no-background'>{TextArray[i]}</p>"));
+                }
+            }
         }
-        else
-        {
-            Core = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>{finalTextString}</p>");
-        }
+    }
+
+    private static string GetSubstringUntil(string text, string delimiter)
+    {
+        int index = text.IndexOf(delimiter);
+        if (index >= 0)
+            return text.Substring(0, index);
+        return text; // Return original string if delimiter not found
+    }
+
+    private static string GenerateRandomString(int length)
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        var random = new Random(1);
+
+        return new string(Enumerable.Repeat(chars, length)
+            .Select(s => s[random.Next(s.Length)]).ToArray());
     }
 }
 public class AdditionalContentCodeNode : AdditionalContentElemNodeCore
