@@ -519,11 +519,11 @@ public class AdditionalContentTextArrayNode : AdditionalContentElemNodeCore
             {
                 if (Format)
                 {
-                    Core.AppendChild(HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment no-background'>{HtmlTextFormater.Format(TextArray[i])}</p>"));
+                    Core.AppendChild(HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment no-background text-array-line'>{HtmlTextFormater.Format(TextArray[i])}</p>"));
                 }
                 else
                 {
-                    Core.AppendChild(HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment no-background'>{TextArray[i]}</p>"));
+                    Core.AppendChild(HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment no-background text-array-line'>{TextArray[i]}</p>"));
                 }
             }
         }
