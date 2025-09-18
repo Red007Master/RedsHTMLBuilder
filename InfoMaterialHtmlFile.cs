@@ -315,7 +315,7 @@ public class InfoMaterialThemeHtmlFile : HtmlFile
             {
                 if (additionalContentElemConfigs[i].Src.EndsWith(".mp4") || additionalContentElemConfigs[i].Src.EndsWith(".mkv"))
                 {
-                    result.Add(new AdditionalContentVideoNode(additionalContentElemConfigs[i].Src, additionalContentElemConfigs[i].Text));
+                    result.Add(new AdditionalContentVideoNode(additionalContentElemConfigs[i].Src, additionalContentElemConfigs[i].Text, additionalContentElemConfigs[i].Preset));
                 }
                 else
                 {
@@ -514,7 +514,7 @@ public class AdditionalContentTextArrayNode : AdditionalContentElemNodeCore
 
                 if (lastNodeIsCode && languageClass == "language-connect")
                 {
-                    Core.ChildNodes[Core.ChildNodes.Count -1].ChildNodes[0].InnerHtml += "\n" + code;
+                    Core.ChildNodes[Core.ChildNodes.Count - 1].ChildNodes[0].InnerHtml += "\n" + code;
                 }
                 else
                 {
@@ -676,24 +676,34 @@ public class AdditionalContentVideoNode : AdditionalContentElemNodeCore
 {
     public string Src { get; set; }
     public string Title { get; set; }
+    public string Preset { get; set; }
 
-    public AdditionalContentVideoNode(string src, string title)
+    public AdditionalContentVideoNode(string src, string title, string preset)
     {
         Src = src;
         Title = title;
+        Preset = preset;
     }
 
     public override void Compile()
     {
         HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode("<div class='theme-additional-html-content-container'></div>");
 
-        if (Title == "")
+        if (Title != "")
         {
-            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' controls><source src='{Src}'></video>"));
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<p class='code-pre-title'>{Title}</p>"));
+        }
+
+        if (Preset == "autoplay")
+        {
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' controls autoplay loop muted><source src='{Src}'></video>"));
+        }
+        else if (Preset == "autoplay-no-controls")
+        {
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' autoplay loop muted><source src='{Src}'></video>"));
         }
         else
         {
-            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<p class='code-pre-title'>{Title}</p>"));
             otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' controls><source src='{Src}'></video>"));
         }
 
@@ -1015,6 +1025,7 @@ public class AdditionalContentElemConfig
     public string CodeFile { get; set; } = "";
     public TreeNode? Tree { get; set; } = null;
     public string Src { get; set; } = "";
+    public string Preset { get; set; } = "";
     public string OtherHtml { get; set; } = "";
     public string LanguageClass { get; set; }
     public bool Format { get; set; } = true;
