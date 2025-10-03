@@ -696,15 +696,15 @@ public class AdditionalContentVideoNode : AdditionalContentElemNodeCore
 
         if (Preset == "autoplay")
         {
-            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' controls autoplay loop muted><source src='{Src}'></video>"));
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-video' controls autoplay loop muted><source src='{Src}'></video>"));
         }
         else if (Preset == "autoplay-no-controls")
         {
-            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' autoplay loop muted><source src='{Src}'></video>"));
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-video' autoplay loop muted><source src='{Src}'></video>"));
         }
         else
         {
-            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-img' controls><source src='{Src}'></video>"));
+            otherHtmlContainerNode.AppendChild(HtmlNode.CreateNode($"<video class='theme-additional-video' controls><source src='{Src}'></video>"));
         }
 
         Core = otherHtmlContainerNode;
@@ -1086,11 +1086,21 @@ public class WhomeComparer : IComparer<Whome>
     }
 }
 
+public class CourseConfig
+{
+    public string Title { get; set; } = String.Empty;
+    public string Password { get; set; } = String.Empty;
+    public int Index { get; set; } = -1;
+}
+
 public class CourseWhome
 {
     public string CourseTitle { get; set; } = String.Empty;
+    public int CourseIndex { get; set; } = -1;
+    public string CoursePassword { get; set; } = String.Empty;
 
     public List<Whome> Whomes { get; set; } = new List<Whome>();
+    public string CourseCrudeTitle { get; set; } = String.Empty;
 
     internal void Sort()
     {

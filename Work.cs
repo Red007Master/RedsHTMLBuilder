@@ -21,9 +21,34 @@ internal partial class Work
             {
                 string[] directories = Directory.GetDirectories(lookForConfigsIn[i], "*", System.IO.SearchOption.AllDirectories);
 
+                string crudeCourseName = new DirectoryInfo(lookForConfigsIn[i]).Name;
+
                 CourseWhome courseWhome = new CourseWhome();
 
-                courseWhome.CourseTitle = new DirectoryInfo(lookForConfigsIn[i]).Name;
+                string courseConfigPath = Path.Join(lookForConfigsIn[i], "dev.course-config.json");
+                CourseConfig courseConfig;
+                if (File.Exists(courseConfigPath))
+                {
+                    string courseConfigSerial = File.ReadAllText(courseConfigPath);
+
+                    courseConfig = JsonConvert.DeserializeObject<CourseConfig>(courseConfigSerial);
+                }
+                else
+                {
+                    courseConfig = new CourseConfig();
+
+                    courseConfig.Title = crudeCourseName;
+                    courseConfig.Password = crudeCourseName + "pswd";
+
+                    string courseConfigSerial = JsonConvert.SerializeObject(courseConfig, Formatting.Indented);
+
+                    File.WriteAllText(courseConfigPath, courseConfigSerial);
+                }
+
+                courseWhome.CourseTitle = courseConfig.Title;
+                courseWhome.CourseCrudeTitle = crudeCourseName;
+                courseWhome.CoursePassword = courseConfig.Password;
+                courseWhome.CourseIndex = courseConfig.Index;
 
                 for (int j = 0; j < directories.Length; j++)
                 {
@@ -72,7 +97,7 @@ internal partial class Work
 
             for (int i = 0; i < courseWhomes.Count; i++)
             {
-                if (P.GatorAddTargets.Contains(courseWhomes[i].CourseTitle))
+                if (P.GatorAddTargets.Contains(courseWhomes[i].CourseCrudeTitle))
                 {
                     courseWhomes[i].Sort();
                     tmpWhomes.Add(courseWhomes[i]);
