@@ -483,7 +483,7 @@ internal partial class Work
                 string[] pathArray = coreDir.Split(Path.DirectorySeparatorChar);
                 string themeFolderName = pathArray[pathArray.Length - 3];
                 themePath = Path.Join(themePath, themeFolderName);
-                themeNumber = RemoveNonNumericCharactersAndReturnNumberOrZero(themeFolderName);
+                themeNumber = RemoveNonNumericCharactersAndReturnNumberOrNegative(themeFolderName);
 
                 infoMaterialThemeHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialThemeConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, infoMaterialThemeProjectDirs.CodefilesFolderPath, themeNumber);
                 infoMaterialTaskHtmlFile = LoadInfoMaterialThemeHtmlFile(infoMaterialThemeProjectDirs.InfoMaterialTaskConfig, infoMaterialThemeProjectDirs.TextFormater, P.Settings.SettingsList.GlobalHtmlTextFormaterConfig, infoMaterialThemeProjectDirs.Styles, infoMaterialThemeProjectDirs.Scripts, infoMaterialThemeProjectDirs.AdditionalHeadContent, infoMaterialThemeProjectDirs.Header, infoMaterialThemeProjectDirs.Footer, infoMaterialThemeProjectDirs.AdditionalMainDivContent, infoMaterialThemeProjectDirs.CodefilesFolderPath, themeNumber);
@@ -512,7 +512,7 @@ internal partial class Work
             }
         }
 
-        if (loaded && themeNumber > 0)
+        if (loaded && themeNumber >= 0)
         {
             CompileAndSaveIfConfigIsNewer(infoMaterialThemeHtmlFile, coreDir, "theme.html");
             CompileAndSaveIfConfigIsNewer(infoMaterialTaskHtmlFile, coreDir, "tasks.html");
@@ -527,7 +527,7 @@ internal partial class Work
         return null;
     }
 
-    static int RemoveNonNumericCharactersAndReturnNumberOrZero(string input)
+    static int RemoveNonNumericCharactersAndReturnNumberOrNegative(string input)
     {
         string pattern = "[^0-9]";
         string replacement = "";
