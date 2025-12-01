@@ -780,7 +780,11 @@ public class AdditionalContentListNode : AdditionalContentElemNodeCore
             }
         }
 
-        HtmlNode otherHtmlContainerNode = HtmlNode.CreateNode("<div class='theme-additional-html-content-container'></div>");
+
+        HtmlNode otherHtmlContainerNode;
+
+        otherHtmlContainerNode = HtmlNode.CreateNode("<div class='theme-additional-html-content-container'></div>");
+
         for (int i = 0; i < List.Count; i++)
         {
             string numText;
@@ -801,13 +805,29 @@ public class AdditionalContentListNode : AdditionalContentElemNodeCore
                 numText = "*";
             }
 
+            string pClasses = "theme-text-container theme-text-container-code-comment";
+
+            if (List[i].List != null)
+            {
+                pClasses += " no-bottom-margin-or-padding";
+            }
+
             if (List[i].Format)
             {
-                listItem = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>[{HtmlTextFormater.ForceFormatHighlight(numText)}] {HtmlTextFormater.Format(List[i].Text)}</p>");
+                listItem = HtmlNode.CreateNode($"<p class='{pClasses}'>[{HtmlTextFormater.ForceFormatHighlight(numText)}] {HtmlTextFormater.Format(List[i].Text)}</p>");
             }
             else
             {
-                listItem = HtmlNode.CreateNode($"<p class='theme-text-container theme-text-container-code-comment'>[{HtmlTextFormater.ForceFormatHighlight(numText)}] {List[i].Text}</p>");
+                listItem = HtmlNode.CreateNode($"<p class='{pClasses}'>[{HtmlTextFormater.ForceFormatHighlight(numText)}] {List[i].Text}</p>");
+            }
+
+            if (List[i].List != null)
+            {
+                AdditionalContentListNode childList = new AdditionalContentListNode(List[i].List, numText, HtmlTextFormater);
+
+                childList.Compile();
+
+                listItem.AppendChild(childList.Core);
             }
 
             otherHtmlContainerNode.AppendChild(listItem);
@@ -1054,6 +1074,7 @@ public class ListItem
     public bool Format { get; set; } = true;
     public string Num { get; set; } = "";
     public string Text { get; set; } = "";
+    public List<ListItem>? List = null;
 }
 
 public class Whome
